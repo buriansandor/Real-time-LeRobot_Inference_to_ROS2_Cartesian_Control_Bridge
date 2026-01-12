@@ -18,7 +18,7 @@ import numpy as np
 # Simple 3D plot initialization
 def init_3d_figure():
     """Initialize a 3D matplotlib figure for robot visualization"""
-    fig = plt.figure(figsize=(10, 8))
+    fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     return fig, ax
 
@@ -38,6 +38,7 @@ def find_port():
     return "COM5" if platform.system() == "Windows" else "/dev/ttyUSB0"
 
 # --- Settings ---
+
 URDF_FILE = "../demo/SO100/URDF/so100.urdf"
 my_chain = ikpy.chain.Chain.from_urdf_file(
     URDF_FILE,
@@ -178,7 +179,7 @@ def update_plot(frame_idx):
     fig.canvas.flush_events()
 
 
-print("\n\nStarting visualization... (Press Ctrl+C to stop)")
+print("\n\nStarting visualization... (Close the visualisation window then press Ctrl+C to stop)")
 try:
     frame = 0
     while True:
