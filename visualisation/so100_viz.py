@@ -5,6 +5,7 @@ Created by Sandor Burian with the help of Gemini3 PRO and GitHub Copilot (Claude
 Live visualization of SO100 leader robot arm using IKpy and Matplotlib
 """
 
+import argparse
 import platform
 import struct
 import ikpy.chain
@@ -55,36 +56,76 @@ def find_port_with_lerobot():
         print("Falling back to pyserial method...")
     return find_port()
 
-# --- Settings ---
+def parse_arguments():
+    """Parse command line arguments with interactive fallback"""
+    parser = argparse.ArgumentParser(description='SO-100 Robot Arm Visualization')
+    parser.add_argument('--port', '-p', type=str, help='Serial port (e.g., COM5 or /dev/ttyUSB0)')
+    parser.add_argument('--baud-rate', '-b', type=int, default=1000000, help='Baud rate (default: 1000000)')
+    parser.add_argument('--simulation', '-s', action='store_true', help='Run in simulation mode')
+    parser.add_argument('--urdf', '-u', type=str, default='../demo/SO100/URDF/so100.urdf', help='Path to URDF file, default: ../demo/SO100/URDF/so100.urdf')
+    parser.add_argument('--motor-ids', '-m', nargs='+', type=int, default=[1, 2, 3, 4, 5, 6], help='Motor IDs (default: 1 2 3 4 5 6)')
+    
+    return parser.parse_args()
+
+# --- Configuration ---
+
+# Parse command line arguments
+args = parse_arguments()
 
 print("Initializing SO-100 real-time visualization settings...")
-URDF_FILE = "../demo/SO100/URDF/so100.urdf"
+
+# Load URDF file
+URDF_FILE = args.urdf
 my_chain = ikpy.chain.Chain.from_urdf_file(
     URDF_FILE,
     base_elements=["base"]                  # Specify the correct base element name
 )
-MOTOR_IDS = [1, 2, 3, 4, 5, 6]              # STS3215 servo IDs for SO-100
+MOTOR_IDS = args.motor_ids
+
 print("SO-100 URDF loaded...")
 print(f"Number of joints: {len(my_chain.links)}")
-print("Press enter to continue or s to run in simulation mode...")
-user_input = input().strip().lower()
-SIMULATION_MODE = (user_input == 's')
-print("Press enter to continue with COM5 on Windows, /dev/ttyUSB0 on Linux, or c to configure another port.")
-user_input = input().strip().lower()
-if user_input == 'c':
-    SERIAL_PORT = find_port_with_lerobot()     # On Windows e.g. COM5, on Linux /dev/ttyUSB0
+
+# Determine simulation mode
+if args.simulation:
+    SIMULATION_MODE = True
+    print("Running in simulation mode (from command line)")
 else:
-    SERIAL_PORT = 'COM5' if platform.system() == 'Windows' else '/dev/ttyUSB0'
-BAUD_RATE = 1000000                        # Default speed of the STS3215
+    if args is None:
+        # Interactive fallback if not specified
+        print("Press enter to continue or s to run in simulation mode...")
+        user_input = input().strip().lower()
+        SIMULATION_MODE = (user_input == 's')
+    else:
+        SIMULATION_MODE = False
+    print(f"Running in {'simulation' if SIMULATION_MODE else 'real'} mode")
+
+# Determine serial port
+if args.port:
+    SERIAL_PORT = args.port
+    print(f"Using port: {SERIAL_PORT}")
+else:
+    # Interactive fallback
+    if not SIMULATION_MODE:
+        print("Press enter to continue with COM5 on Windows, /dev/ttyUSB0 on Linux, or c to configure another port.")
+        user_input = input().strip().lower()
+        if user_input == 'c':
+            SERIAL_PORT = find_port_with_lerobot()     # On Windows e.g. COM5, on Linux /dev/ttyUSB0
+        else:
+            SERIAL_PORT = 'COM5' if platform.system() == 'Windows' else '/dev/ttyUSB0'
+    else:
+        SERIAL_PORT = None  # Not needed in simulation mode
+
+BAUD_RATE = args.baud_rate
+
+print(f"Configuration: Simulation={SIMULATION_MODE}, Port={SERIAL_PORT}, Baud={BAUD_RATE}")
 # ----------------
 
 print("\nStarting SO-100 real-time visualization...")
-print("Assuming you have a Waveshare/Feetech driver for the SO100 connected via USB.")
+print("Assuming a Waveshare/Feetech driver for the SO100 connected via USB.")
 print("---------------------------------------")
 
 if not SIMULATION_MODE:
     import serial
-    SERIAL_PORT = 'COM5'
     print(f"Using port: {SERIAL_PORT}, baud rate: {BAUD_RATE}")
     ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=0.05)
     
@@ -110,14 +151,14 @@ def disable_torque(ser, motor_id):
     """Disables the motor torque to allow 1nual movement (Leader mode)"""
     # Instruction: Write (0x03), Address: 40 (Torque Enable), Value: 0
     msg = [0xFF, 0xFF, motor_id, 0x04, 0x03, 0x28, 0x00]
-    msg.append(checksum(msg[2:]))
-    ser.write(bytearray(msg))
+    msg.append(checksum(msg[2:])) 
+    ser.write(bytearray(msg)) 
     time.sleep(0.005) # Small pause for the bus
 
 def read_position(ser, motor_id):
     """Reads the current position (0-4096)"""
     # Instruction: Read (0x02), Address: 56 (Present Position), Length: 2
-    msg = [0xFF, 0xFF, motor_id, 0x04, 0x02, 0x38, 0x02]
+    msg = [0xFF, 0xFF, motor_id, 0x04, 0x02, 0x38, 0x02] 
     msg.append(checksum(msg[2:]))
     
     ser.reset_input_buffer() # Clear the buffer
@@ -126,7 +167,7 @@ def read_position(ser, motor_id):
     response = ser.read(8)
     
     if len(response) == 8:
-        pos_raw = struct.unpack('<H', response[5:7])[0]
+        pos_raw = struct.unpack('<H', response[5:7])[0] 
         return pos_raw
     return None
 
@@ -214,4 +255,5 @@ try:
 except KeyboardInterrupt:
     print("\nStopped.")
     plt.close()
+
 
