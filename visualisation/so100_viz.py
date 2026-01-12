@@ -321,7 +321,7 @@ print(f"Number of joints: {len(my_chain.links)}")
 
 # Setup the offsets of the robotic arm
 ZERO_OFFSETS = [2197, 1994, 1091, 2045, 2928, 1675]
-DIRECTIONS = [1, 1, 1, 1, 1, 1]
+DIRECTIONS = [-1, 1, 1, 1, 1, 1]
 CALIBRATION_POSE_ADJUSTMENTS = [0, 1.45, -2.8, -0.5, 1.5, 0] #[0, 1.45, -2.7, -1.57, 1.5, 0]
 
 
