@@ -62,90 +62,11 @@ def parse_arguments():
     parser.add_argument('--port', '-p', type=str, help='Serial port (e.g., COM5 or /dev/ttyUSB0)')
     parser.add_argument('--baud-rate', '-b', type=int, default=1000000, help='Baud rate (default: 1000000)')
     parser.add_argument('--simulation', '-s', action='store_true', help='Run in simulation mode')
+    parser.add_argument('--loose_motors', '-l', action='store_true', help='Loosen motors for manual movement, default: false')
     parser.add_argument('--urdf', '-u', type=str, default='../demo/SO100/URDF/so100.urdf', help='Path to URDF file, default: ../demo/SO100/URDF/so100.urdf')
     parser.add_argument('--motor-ids', '-m', nargs='+', type=int, default=[1, 2, 3, 4, 5, 6], help='Motor IDs (default: 1 2 3 4 5 6)')
     
     return parser.parse_args()
-
-# --- Configuration ---
-
-# Parse command line arguments
-args = parse_arguments()
-
-print("Initializing SO-100 real-time visualization settings...")
-
-# Load URDF file
-URDF_FILE = args.urdf
-my_chain = ikpy.chain.Chain.from_urdf_file(
-    URDF_FILE,
-    base_elements=["base"]                  # Specify the correct base element name
-)
-MOTOR_IDS = args.motor_ids
-
-print("SO-100 URDF loaded...")
-print(f"Number of joints: {len(my_chain.links)}")
-
-# Determine simulation mode
-if args.simulation:
-    SIMULATION_MODE = True
-    print("Running in simulation mode (from command line)")
-else:
-    if args is None:
-        # Interactive fallback if not specified
-        print("Press enter to continue or s to run in simulation mode...")
-        user_input = input().strip().lower()
-        SIMULATION_MODE = (user_input == 's')
-    else:
-        SIMULATION_MODE = False
-    print(f"Running in {'simulation' if SIMULATION_MODE else 'real'} mode")
-
-# Determine serial port
-if args.port:
-    SERIAL_PORT = args.port
-    print(f"Using port: {SERIAL_PORT}")
-else:
-    # Interactive fallback
-    if not SIMULATION_MODE:
-        print("Press enter to continue with COM5 on Windows, /dev/ttyUSB0 on Linux, or c to configure another port.")
-        user_input = input().strip().lower()
-        if user_input == 'c':
-            SERIAL_PORT = find_port_with_lerobot()     # On Windows e.g. COM5, on Linux /dev/ttyUSB0
-        else:
-            SERIAL_PORT = 'COM5' if platform.system() == 'Windows' else '/dev/ttyUSB0'
-    else:
-        SERIAL_PORT = None  # Not needed in simulation mode
-
-BAUD_RATE = args.baud_rate
-
-print(f"Configuration: Simulation={SIMULATION_MODE}, Port={SERIAL_PORT}, Baud={BAUD_RATE}")
-# ----------------
-
-print("\nStarting SO-100 real-time visualization...")
-print("Assuming a Waveshare/Feetech driver for the SO100 connected via USB.")
-print("---------------------------------------")
-
-if not SIMULATION_MODE:
-    import serial
-    print(f"Using port: {SERIAL_PORT}, baud rate: {BAUD_RATE}")
-    ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=0.05)
-    
-
-my_chain = ikpy.chain.Chain.from_urdf_file(URDF_FILE, base_elements=["base"])
-n_motors = len(my_chain.links)
-print(f"Robot loaded. Number of links: {n_motors}")
-
-plt.ion()  # Enable interactive mode (this is key for movement!)
-fig, ax = init_3d_figure()
-ax.set_xlim(-0.3, 0.3)
-ax.set_ylim(-0.3, 0.3)
-ax.set_zlim(0, 0.4)
-ax.set_title("SO-100 Real-Time Digital Twin")
-
-
-# --- STS3215 Communication ---
-
-def checksum(data):
-    return (~sum(data)) & 0xFF
 
 def disable_torque(ser, motor_id):
     """Disables the motor torque to allow 1nual movement (Leader mode)"""
@@ -154,6 +75,11 @@ def disable_torque(ser, motor_id):
     msg.append(checksum(msg[2:])) 
     ser.write(bytearray(msg)) 
     time.sleep(0.005) # Small pause for the bus
+
+# --- STS3215 Communication ---
+
+def checksum(data):
+    return (~sum(data)) & 0xFF
 
 def read_position(ser, motor_id):
     """Reads the current position (0-4096)"""
@@ -244,6 +170,84 @@ def update_plot(frame_idx):
     fig.canvas.draw()
     fig.canvas.flush_events()
 
+# --- Configuration ---
+
+# Parse command line arguments
+args = parse_arguments()
+
+print("Initializing SO-100 real-time visualization settings...")
+
+# Load URDF file
+URDF_FILE = args.urdf
+my_chain = ikpy.chain.Chain.from_urdf_file(
+    URDF_FILE,
+    base_elements=["base"]                  # Specify the correct base element name
+)
+MOTOR_IDS = args.motor_ids
+
+print("SO-100 URDF loaded...")
+print(f"Number of joints: {len(my_chain.links)}")
+
+# Determine simulation mode
+if args.simulation:
+    SIMULATION_MODE = True
+    print("Running in simulation mode (from command line)")
+else:
+    if args is None:
+        # Interactive fallback if not specified
+        print("Press enter to continue or s to run in simulation mode...")
+        user_input = input().strip().lower()
+        SIMULATION_MODE = (user_input == 's')
+    else:
+        SIMULATION_MODE = False
+    print(f"Running in {'simulation' if SIMULATION_MODE else 'real'} mode")
+
+# Determine serial port
+if args.port:
+    SERIAL_PORT = args.port
+    print(f"Using port: {SERIAL_PORT}")
+else:
+    # Interactive fallback
+    if not SIMULATION_MODE:
+        print("Press enter to continue with COM5 on Windows, /dev/ttyUSB0 on Linux, or c to configure another port.")
+        user_input = input().strip().lower()
+        if user_input == 'c':
+            SERIAL_PORT = find_port_with_lerobot()     # On Windows e.g. COM5, on Linux /dev/ttyUSB0
+        else:
+            SERIAL_PORT = 'COM5' if platform.system() == 'Windows' else '/dev/ttyUSB0'
+    else:
+        SERIAL_PORT = None  # Not needed in simulation mode
+
+BAUD_RATE = args.baud_rate
+
+print(f"Configuration: Simulation={SIMULATION_MODE}, Port={SERIAL_PORT}, Baud={BAUD_RATE}")
+# ----------------
+
+print("\nStarting SO-100 real-time visualization...")
+print("Assuming a Waveshare/Feetech driver for the SO100 connected via USB.")
+print("---------------------------------------")
+
+if not SIMULATION_MODE:
+    import serial
+    print(f"Using port: {SERIAL_PORT}, baud rate: {BAUD_RATE}")
+    ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=0.05)
+    if(args.loose_motors):
+        print("Loosing motors in the robotic arm...")
+        for mid in MOTOR_IDS:
+            disable_torque(ser, mid)
+        print("Now the arm can be moved!")
+    
+
+my_chain = ikpy.chain.Chain.from_urdf_file(URDF_FILE, base_elements=["base"])
+n_motors = len(my_chain.links)
+print(f"Robot loaded. Number of links: {n_motors}")
+
+plt.ion()  # Enable interactive mode (this is key for movement!)
+fig, ax = init_3d_figure()
+ax.set_xlim(-0.3, 0.3)
+ax.set_ylim(-0.3, 0.3)
+ax.set_zlim(0, 0.4)
+ax.set_title("SO-100 Real-Time Digital Twin")
 
 print("\n\nStarting visualization... (Close the visualisation window then press Ctrl+C to stop)")
 try:
