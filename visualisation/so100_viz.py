@@ -5,6 +5,7 @@ Created by Sandor Burian with the help of Gemini3 PRO and GitHub Copilot (Claude
 Live visualization of SO100 leader robot arm using IKpy and Matplotlib
 """
 
+import platform
 import struct
 import ikpy.chain
 import math
@@ -15,16 +16,14 @@ from ikpy.link import OriginLink, URDFLink
 import time
 import numpy as np
 
-# Simple 3D plot initialization
 def init_3d_figure():
     """Initialize a 3D matplotlib figure for robot visualization"""
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     return fig, ax
 
-# Simple port detection using lerobot's pyserial dependency
 def find_port():
-    """Find available serial port using pyserial (lerobot dependency)"""
+    """Find available serial port using pyserial or manually if pyserial is not available"""
     try:
         import serial.tools.list_ports
         ports = list(serial.tools.list_ports.comports())
@@ -34,28 +33,53 @@ def find_port():
         pass
     
     # Fallback
-    import platform
-    return "COM5" if platform.system() == "Windows" else "/dev/ttyUSB0"
+    print(f"Error finding port with PySerial: {e}")
+    print("Falling back to manual method...")
+    print("Available ports:")
+    for p in ports:
+        print(f" - {p.device}\t {p.description}")
+    portnumber = input("Enter the port number for your device (e.g., COM5 or /dev/ttyUSB0): ")
+    return portnumber
+
+def find_port_with_lerobot():
+    """Use lerobot's 'lerobot-find-port' to find the serial port"""
+    import subprocess
+    try:
+        subprocess.call(['lerobot-find-port'])
+        print("\nConnect again the robot in the same USB port!")
+        port = input("Enter the port number for your device: ")
+        if port:
+            return port
+    except Exception as e:
+        print(f"Error finding port with LeRobot: {e}")
+        print("Falling back to pyserial method...")
+    return find_port()
 
 # --- Settings ---
 
+print("Initializing SO-100 real-time visualization settings...")
 URDF_FILE = "../demo/SO100/URDF/so100.urdf"
 my_chain = ikpy.chain.Chain.from_urdf_file(
     URDF_FILE,
-    base_elements=["base"]  # Specify the correct base element name
+    base_elements=["base"]                  # Specify the correct base element name
 )
-MOTOR_IDS = [1, 2, 3, 4, 5, 6]  # STS3215 servo IDs for SO-100
-print("--- SO-100 URDF loaded ---")
+MOTOR_IDS = [1, 2, 3, 4, 5, 6]              # STS3215 servo IDs for SO-100
+print("SO-100 URDF loaded...")
 print(f"Number of joints: {len(my_chain.links)}")
 print("Press enter to continue or s to run in simulation mode...")
 user_input = input().strip().lower()
 SIMULATION_MODE = (user_input == 's')
-SERIAL_PORT = 'COM5'     # On Windows e.g. COM5, on Linux /dev/ttyUSB0
-BAUD_RATE = 1000000      # Default speed of the STS3215
+print("Press enter to continue with COM5 on Windows, /dev/ttyUSB0 on Linux, or c to configure another port.")
+user_input = input().strip().lower()
+if user_input == 'c':
+    SERIAL_PORT = find_port_with_lerobot()     # On Windows e.g. COM5, on Linux /dev/ttyUSB0
+else:
+    SERIAL_PORT = 'COM5' if platform.system() == 'Windows' else '/dev/ttyUSB0'
+BAUD_RATE = 1000000                        # Default speed of the STS3215
 # ----------------
 
 print("\nStarting SO-100 real-time visualization...")
-print("We asssume you have a Waveshare/Feetech driver for the SO100 connected via USB.")
+print("Assuming you have a Waveshare/Feetech driver for the SO100 connected via USB.")
 print("---------------------------------------")
 
 if not SIMULATION_MODE:
@@ -83,7 +107,7 @@ def checksum(data):
     return (~sum(data)) & 0xFF
 
 def disable_torque(ser, motor_id):
-    """Disables the motor torque to allow manual movement (Leader mode)"""
+    """Disables the motor torque to allow 1nual movement (Leader mode)"""
     # Instruction: Write (0x03), Address: 40 (Torque Enable), Value: 0
     msg = [0xFF, 0xFF, motor_id, 0x04, 0x03, 0x28, 0x00]
     msg.append(checksum(msg[2:]))
@@ -117,7 +141,8 @@ def raw_to_radians(raw_value, offset=2048):
 
 def get_real_servo_positions():
     """
-    This function needs to be written for your specific driver.
+    Reads the current servo positions from the robot and converts to radians.
+    Returns a list of angles in radians for each joint.
     """
     if SIMULATION_MODE:
         # Generate a slow oscillating movement for testing
@@ -189,3 +214,4 @@ try:
 except KeyboardInterrupt:
     print("\nStopped.")
     plt.close()
+
