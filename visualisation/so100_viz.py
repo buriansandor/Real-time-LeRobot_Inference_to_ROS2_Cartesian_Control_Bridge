@@ -24,61 +24,6 @@ def init_3d_figure():
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(111, projection='3d')
     
-    # Add view buttons
-    button_height = 0.04
-    button_width = 0.08
-    button_left = 0.02
-    button_spacing = 0.05
-    
-    
-    # Create buttons for different views
-    ax_top = plt.axes([button_left, 0.95 - button_spacing, button_width, button_height])
-    ax_front = plt.axes([button_left, 0.95 - 2*button_spacing, button_width, button_height])
-    ax_right = plt.axes([button_left, 0.95 - 3*button_spacing, button_width, button_height])
-    ax_iso = plt.axes([button_left, 0.95 - 4*button_spacing, button_width, button_height])
-    ax_left = plt.axes([button_left, 0.95 - 5*button_spacing, button_width, button_height])
-    ax_back = plt.axes([button_left, 0.95 - 6*button_spacing, button_width, button_height])
-    
-    btn_top = Button(ax_top, 'Top')
-    btn_front = Button(ax_front, 'Front')
-    btn_right = Button(ax_right, 'Right')
-    btn_iso = Button(ax_iso, 'Iso')
-    btn_left = Button(ax_left, 'Left')
-    btn_back = Button(ax_back, 'Back')
-    
-    # Define view functions
-    def view_top(event):
-        ax.view_init(elev=90, azim=-90)
-        fig.canvas.draw_idle()
-    
-    def view_front(event):
-        ax.view_init(elev=0, azim=-90)
-        fig.canvas.draw_idle()
-    
-    def view_right(event):
-        ax.view_init(elev=0, azim=0)
-        fig.canvas.draw_idle()
-    
-    def view_iso(event):
-        ax.view_init(elev=30, azim=-60)
-        fig.canvas.draw_idle()
-    
-    def view_left(event):
-        ax.view_init(elev=0, azim=180)
-        fig.canvas.draw_idle()
-    
-    def view_back(event):
-        ax.view_init(elev=0, azim=90)
-        fig.canvas.draw_idle()
-    
-    # Connect buttons to functions
-    btn_top.on_clicked(view_top)
-    btn_front.on_clicked(view_front)
-    btn_right.on_clicked(view_right)
-    btn_iso.on_clicked(view_iso)
-    btn_left.on_clicked(view_left)
-    btn_back.on_clicked(view_back)
-    
     return fig, ax
 
 def find_port():
