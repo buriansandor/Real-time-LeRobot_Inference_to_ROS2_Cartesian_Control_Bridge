@@ -52,7 +52,7 @@ jobs:
     
     - name: Upload pylint report as artifact
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: pylint-report-python-${{ matrix.python-version }}
         path: pylint-report.json
