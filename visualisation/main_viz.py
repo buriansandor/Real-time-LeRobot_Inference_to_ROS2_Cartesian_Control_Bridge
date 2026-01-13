@@ -149,16 +149,17 @@ def main(port_name=None, urdf_path=None, simulation=False, hardware=1):
             # the follower arm
             target_pos = bridge.transform(so100_pos)
             if bridge.follower_chain:
-                # Az ikpy IK solverét használjuk
+                # calculating the positions with ikpy
+                # this is not the real wireframe of the follower robotic arm
                 follower_angles = bridge.follower_chain.inverse_kinematics(
                     target_position=target_pos, 
                     initial_position=last_follower_angles  
                 )
                 last_follower_angles = follower_angles
-                # Kiszámoljuk, hova sikerült ténylegesen eljutni (ellenőrzés)
+                # calculate the actual position)
                 actual_ar4_pos = bridge.follower_chain.forward_kinematics(follower_angles)[:3, 3]
             else:
-                follower_angles = [0] * 7 # Ha nincs URDF, maradjon alaphelyzetben
+                follower_angles = [0] * 7 
                 actual_ar4_pos = target_pos
                 last_follower_angles = follower_angles
             
