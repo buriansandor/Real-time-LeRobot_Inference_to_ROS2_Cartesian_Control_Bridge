@@ -1,0 +1,116 @@
+# Pylint configuration file for HFSO100_to_AnninAR4_connector project
+# Created by Sandor Burian with the help of GitHub Copilot (Claude Sonnet 4)
+
+[MASTER]
+# Add files or directories to the blacklist
+ignore=.venv,venv,__pycache__,.git,.github
+
+# Use multiple processes to speed up Pylint
+jobs=0
+
+# Pickle collected data for later comparisons
+persistent=yes
+
+# Specify a score threshold under which the program will exit with error
+fail-under=7.0
+
+[MESSAGES CONTROL]
+# Disable specific warnings that are common in robotics/scientific code
+disable=
+    # Too many arguments/locals/branches - common in robotics control
+    too-many-arguments,
+    too-many-locals,
+    too-many-branches,
+    too-many-statements,
+    too-many-instance-attributes,
+    
+    # Import related - scientific packages often have complex imports
+    import-outside-toplevel,
+    wrong-import-position,
+    
+    # Documentation - allow missing docstrings for simple functions
+    missing-module-docstring,
+    missing-function-docstring,
+    missing-class-docstring,
+    
+    # Naming - allow single letter variables common in math/robotics
+    invalid-name,
+    
+    # Constants - allow uppercase variables that aren't constants
+    too-few-public-methods,
+    
+    # Robotics specific - allow global variables for hardware interfaces
+    global-statement,
+    global-variable-undefined,
+    
+    # Allow broad except clauses for hardware error handling
+    broad-except,
+    
+    # Allow line too long for complex mathematical expressions
+    line-too-long
+
+[FORMAT]
+# Maximum number of characters on a single line
+max-line-length=120
+
+# String used as indentation unit
+indent-string='    '
+
+# Expected format of line ending
+expected-line-ending-format=auto
+
+[VARIABLES]
+# Regular expressions for variable names
+variable-rgx=[a-z_][a-z0-9_]{1,30}$
+
+# Regular expressions for constant names (allow mathematical constants)
+const-rgx=(([A-Z_][A-Z0-9_]*)|(__.*__)|([a-z_][a-z0-9_]*))$
+
+[DESIGN]
+# Maximum number of arguments for function / method
+max-args=10
+
+# Maximum number of locals for function / method body
+max-locals=20
+
+# Maximum number of return / yield for function / method body
+max-returns=6
+
+# Maximum number of branch for function / method body
+max-branches=15
+
+# Maximum number of statements in function / method body
+max-statements=50
+
+# Maximum number of parents for a class
+max-parents=7
+
+# Maximum number of attributes for a class
+max-attributes=15
+
+# Minimum number of public methods for a class
+min-public-methods=1
+
+# Maximum number of public methods for a class
+max-public-methods=25
+
+[SIMILARITIES]
+# Minimum lines number of a similarity
+min-similarity-lines=10
+
+# Ignore comments when computing similarities
+ignore-comments=yes
+
+# Ignore docstrings when computing similarities
+ignore-docstrings=yes
+
+[TYPECHECK]
+# List of members which are set dynamically and missed by pylint inference
+generated-members=numpy.*,np.*,matplotlib.*,plt.*
+
+# List of classes names for which member attributes should not be checked
+ignored-classes=numpy,np,matplotlib,plt,serial,Serial,ikpy
+
+[EXCEPTIONS]
+# Exceptions that will emit a warning when caught
+overgeneral-exceptions=Exception
