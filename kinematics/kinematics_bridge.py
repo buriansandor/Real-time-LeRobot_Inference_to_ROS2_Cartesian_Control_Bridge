@@ -14,6 +14,7 @@ from typing import List, Optional
 @dataclass
 class MappingConfig:
     """Store of configurations"""
+    name: str = "AR4"                   # Name of the target robot
     scale_factor: float = 1.0           # How much to scale the movement?
     offset_x: float     = 0.0           # How much to offset in X direction? (meters)
     offset_y: float     = 0.0           # How much to offset in Y direction?
@@ -26,7 +27,7 @@ class MappingConfig:
     min_radius: float = 0.02        # Should not go closer than this (singularity level)
     max_radius: float = 0.8         # Should not reach beyond this (cylindrical workspace)
 
-class KinematicBridge:
+class KinematicsBridge:
     def __init__(self, config: MappingConfig):
         self.config = config
         self.limit_reached = False

@@ -16,7 +16,8 @@ import argparse
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from demo.SO100.so100_driver import SO100Driver
-from kinematics.kinematics_bridge import KinematicBridge, MappingConfig
+from kinematics.kinematics_bridge import KinematicsBridge, MappingConfig
+from kinematics.urdf_based_kinematics_bridge import URDFBasedKinematicBridge, MappingConfig
 
 def init_3d_figure():
     """Initialize a 3D matplotlib figure for robot visualization"""
@@ -35,42 +36,42 @@ def parse_arguments():
 
 def draw_safety_zone(ax, config):
     """
-    Kirajzolja az AR4 munkaterének határait (halvány "szellem" henger).
+    Work zone of the follower arm
     """
-    # Felbontás a körrajzoláshoz
+    # Resolution for drawing the circle
     theta = np.linspace(0, 2*np.pi, 50)
     z = np.linspace(config.min_z, config.max_z, 10)
     
-    # Rácsok létrehozása (Meshgrid)
+    # Create grids (Meshgrid)
     theta_grid, z_grid = np.meshgrid(theta, z)
     
-    # --- 1. KÜLSŐ HENGER (Max Reach) ---
+    # --- 1. OUTER CYLINDER (Max Reach) ---
     x_outer = config.max_radius * np.cos(theta_grid)
     y_outer = config.max_radius * np.sin(theta_grid)
     
     ax.plot_surface(x_outer, y_outer, z_grid, 
-                    color='gray', alpha=0.1, rstride=5, cstride=5) # alpha=0.1 -> Nagyon halvány
+                    color='gray', alpha=0.1, rstride=5, cstride=5)
 
-    # --- 2. BELSŐ HENGER (Dead Zone) ---
-    # Ez mutatja, miért nem tud "függőlegesen" állni a robot
+    # --- 2. INNER CYLINDER (Dead Zone) ---
+    # This shows why the robot cannot stand "vertically"
     x_inner = config.min_radius * np.cos(theta_grid)
     y_inner = config.min_radius * np.sin(theta_grid)
     
     ax.plot_surface(x_inner, y_inner, z_grid, 
-                    color='red', alpha=0.15, rstride=5, cstride=5) # Picit pirosas, hogy ijesztő legyen
+                    color='red', alpha=0.15, rstride=5, cstride=5) # Slightly reddish to be intimidating
 
-    # --- 3. PADLÓ és PLAFON (Drótváz körök) ---
-    # Csak vonalakkal rajzoljuk, hogy ne takarjon ki mindent
-    ax.plot(x_outer[0, :], y_outer[0, :], config.min_z, 'k--', alpha=0.3) # Padló külső kör
-    ax.plot(x_inner[0, :], y_inner[0, :], config.min_z, 'r--', alpha=0.3) # Padló belső kör
+    # --- 3. FLOOR and CEILING (Wireframe circles) ---
+    # We only draw with lines so it doesn't cover everything
+    ax.plot(x_outer[0, :], y_outer[0, :], config.min_z, 'k--', alpha=0.3) # Floor outer circle
+    ax.plot(x_inner[0, :], y_inner[0, :], config.min_z, 'r--', alpha=0.3) # Floor inner circle
     
-    ax.plot(x_outer[-1, :], y_outer[-1, :], config.max_z, 'k--', alpha=0.3) # Plafon külső
+    ax.plot(x_outer[-1, :], y_outer[-1, :], config.max_z, 'k--', alpha=0.3) # Ceiling outer circle
 
 args = parse_arguments()
 PORT = args.port
 URDF = args.urdf
 
-def main(port_name=None, urdf_path=None, simulation=False):
+def main(port_name=None, urdf_path=None, simulation=False, hardware=1):
     print("Hardware init...")
     
     # Determine the correct URDF path based on working directory
@@ -107,13 +108,24 @@ def main(port_name=None, urdf_path=None, simulation=False):
         sys.argv = original_argv  # Restore original argv
 
     # Create the "Bridge" configuration
-    config = MappingConfig(
-        scale_factor=1.8,
-        min_z=0.05,
-        max_radius=0.6,
-        offset_x=0.0 # No offset at the start
-    )
-    bridge = KinematicBridge(config)
+    if (hardware == 2):
+        config = MappingConfig(
+            scale_factor=1.8,
+            min_z=0.05,
+            max_radius=0.6,
+            offset_x=0.0, # No offset at the start
+            name="Arm B"
+        )
+        bridge = URDFBasedKinematicBridge(config, leader_urdf=urdf_path)
+    else:
+        config = MappingConfig(
+            scale_factor=1.8,
+            min_z=0.05,
+            max_radius=0.6,
+            offset_x=0.0, # No offset at the start
+            name="AR4"
+        )
+        bridge = KinematicsBridge(config)
     
     # 2. Graphics
     plt.ion()
@@ -162,13 +174,20 @@ def main(port_name=None, urdf_path=None, simulation=False):
             # Change color based on if it's on limit
             target_color = 'orange' if bridge.limit_reached else 'red'
 
-            # AR4 Target (Red Sphere)
-            #ax.scatter(ar4_target[0], ar4_target[1], ar4_target[2], c='red', s=100, label='AR4 Target')
-            ax.scatter(ar4_target[0], ar4_target[1], ar4_target[2], c=target_color, s=100, label='AR4 Target')
+            # Target
+            if (hardware==1):
+                ax.scatter(ar4_target[0], ar4_target[1], ar4_target[2], c=target_color, s=100, label='AR4 Target')
+            elif (hardware==2):
+                ax.scatter(ar4_target[0], ar4_target[1], ar4_target[2], c=target_color, s=100, label=bridge.config.name)
+            else:
+                ax.scatter(ar4_target[0], ar4_target[1], ar4_target[2], c=target_color, s=100, label='Target')
 
             # Set robot arm text
             ax.text(so100_pos[0], so100_pos[1], so100_pos[2] + 0.05, "SO-100 (Leader)", color='blue', fontsize=10, fontweight='bold')
-            label_text = "AR4 (Limit!)" if bridge.limit_reached else "AR4 Target"
+            if(bridge.config.name):
+                label_text = f"{bridge.config.name} (Limit!)" if bridge.limit_reached else f"{bridge.config.name}"
+            else:
+                label_text = "AR4 (Limit!)" if bridge.limit_reached else "AR4 Target"
             ax.text(ar4_target[0], ar4_target[1], ar4_target[2] + 0.05, label_text, color=target_color, fontsize=10, fontweight='bold')
             
             # Visual helper lines
@@ -182,6 +201,8 @@ def main(port_name=None, urdf_path=None, simulation=False):
                          f"Target Z: {ar4_target[2]:.2f}m")
             if bridge.limit_reached:
                 ax.set_title(f"!!! LIMIT REACHED !!! Z={ar4_target[2]:.2f}m", color='red')
+            elif simulation:
+                ax.set_title(f"SIMULATION MODE - {title_str}", color='blue')
             else:
                 ax.set_title(title_str)
             

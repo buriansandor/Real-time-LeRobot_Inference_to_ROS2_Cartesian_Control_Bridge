@@ -73,7 +73,7 @@ class SO100Driver:
         parser.add_argument('--motor-ids', '-m', nargs='+', type=int, default=[1, 2, 3, 4, 5, 6], help='Motor IDs (default: 1 2 3 4 5 6)')
         parser.add_argument('--logging_on', '-log', action='store_true', help='Enable movement logging, default: false')
         parser.add_argument('--logging_to_file', '-logf', action='store_true', help='Enable movement logging to file, default: false')
-        parser.add_argument('--callibration_file', '-c', type=str, default='callibration_data.csv', help='Path to callibration data CSV file, default: callibration_data.csv')
+        parser.add_argument('--callibration_file', '-c', type=str, default='SO100/callibration_data.csv', help='Path to callibration data CSV file, default: SO100/callibration_data.csv')
 
         return parser.parse_args()
 

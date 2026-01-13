@@ -18,7 +18,7 @@ def find_robot_port():
 
 def check_files():
     """Checking the files"""
-    required = ["SO100/URDF/so100.urdf", "SO100/so100_driver.py", "../kinematics/kinematics_bridge.py", "../visualisation/main_viz.py"]
+    required = ["SO100/URDF/so100.urdf", "SO100/so100_driver.py", "../kinematics/kinematics_bridge.py", "../kinematics/urdf_based_kinematics_bridge.py", "../visualisation/main_viz.py"]
     missing = [f for f in required if not os.path.exists(f)]
     
     if missing:
@@ -42,11 +42,12 @@ if __name__ == "__main__":
     
     # Ask user for mode selection
     print("\nChoose mode:")
-    print("1. Real hardware (port: {})".format(port))
-    print("2. Simulation mode")
-    choice = input("Enter your choice (1/2): ").strip()
+    print("1. Real hardware with hard-coded kinematics (port: {})".format(port))
+    print("2. Real hardware with URDF-based kinematics (port: {})".format(port))
+    print("3. Simulation mode")
+    choice = input("Enter your choice (1/2/3): ").strip()
     
-    if choice == "2":
+    if choice == "3":
         # Simulation mode
         print("\nStarting simulation mode...")
         import time
@@ -61,7 +62,16 @@ if __name__ == "__main__":
         import time
         time.sleep(1)
         try:
-            start_visualization(port_name=port, simulation=False)
+            start_visualization(port_name=port, simulation=False, hardware=1)
+        except KeyboardInterrupt:
+            print("\nStopped.")
+    elif choice == "2" and port:
+        # Hardware mode
+        print(f"\nStarting hardware mode with URDF model-based kinematics on port: {port}")
+        import time
+        time.sleep(1)
+        try:
+            start_visualization(port_name=port, simulation=False, hardware=2)
         except KeyboardInterrupt:
             print("\nStopped.")
     else:
