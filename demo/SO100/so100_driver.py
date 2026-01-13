@@ -62,7 +62,7 @@ class SO100Driver:
                 self.simulation = True # Fallback to simulation
                 print("Running in simulation mode.")
 
-    def parse_arguments():
+    def parse_arguments(self):
         """Parse command line arguments with interactive fallback"""
         parser = argparse.ArgumentParser(description='SO-100 Robot Arm Visualization')
         parser.add_argument('--port', '-p', type=str, help='Serial port (e.g., COM5 or /dev/ttyUSB0)')
@@ -85,7 +85,7 @@ class SO100Driver:
         if self.simulation: return
         print("Loosening motors...")
 
-        for i in range(1, len(self.n_motors) + 1):
+        for i in range(1, self.n_motors + 1):
             # Message structure: [Header1, Header2, ID, Length, Instruction, Address_L, Address_H, Checksum]
             msg = [0xFF, 0xFF, i, 0x04, 0x03, 0x28, 0x00]
             msg.append(self.checksum(msg[2:]))
@@ -112,7 +112,7 @@ class SO100Driver:
             return [b + a for b, a in zip(sim_base, self.CALIBRATION_POSE_ADJUSTMENTS)] + [0]
 
         angles = [0] # Base
-        for i in range(1, len(self.n_motors) + 1): # Motor ID 1..6
+        for i in range(1, self.n_motors + 1): # Motor ID 1..6
             idx = i - 1             
             raw = self.read_raw_position(i)
             if raw is None: raw = self.ZERO_OFFSETS[idx]
@@ -123,7 +123,7 @@ class SO100Driver:
             rel_rad = (raw - offset) * (2 * math.pi / 4096) * direction
             
             # 2. correction
-            final_rad = rel_rad + self.CALIBRATION_ADJUSTMENTS[idx]
+            final_rad = rel_rad + self.CALIBRATION_POSE_ADJUSTMENTS[idx]
             angles.append(final_rad)
             
         # if angle list is shorter than number of motors (e.g. for gripper)

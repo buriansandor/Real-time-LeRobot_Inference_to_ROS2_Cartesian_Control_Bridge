@@ -22,8 +22,8 @@ class MappingConfig:
     
     # safety limits of follower robot
     min_z: float = 0.05             # Should not go below this (table protection)
-    max_z: float = 0.80             # Should not go above this (ceiling protection)
-    min_radius: float = 0.15        # Should not go closer than this (cylindrical workspace)
+    max_z: float = 0.90             # Should not go above this (ceiling protection)
+    min_radius: float = 0.02        # Should not go closer than this (singularity level)
     max_radius: float = 0.8         # Should not reach beyond this (cylindrical workspace)
 
 class KinematicBridge:

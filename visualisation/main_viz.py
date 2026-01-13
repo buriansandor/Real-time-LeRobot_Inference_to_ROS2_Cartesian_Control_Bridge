@@ -2,28 +2,110 @@
 """
 Main Visualization for SO100 to Annin AR4 Mapping
 
-Created by Sandor Burian with the help of Google Gemini Pro
+Created by Sandor Burian with the help of Google Gemini Pro and Copilot (Claude Sonnet 4)
 """
 
 import matplotlib.pyplot as plt
-from ikpy.utils import plot_utils
+import numpy as np
+from mpl_toolkits.mplot3d import Axes3D
 import sys
 import os
 import keyboard
 import time
+import argparse
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from SO100.so100_driver import SO100Driver
-from kinematics.kinematic_bridge import KinematicBridge, MappingConfig
+from demo.SO100.so100_driver import SO100Driver
+from kinematics.kinematics_bridge import KinematicBridge, MappingConfig
+
+def init_3d_figure():
+    """Initialize a 3D matplotlib figure for robot visualization"""
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    return fig, ax
 
 # --- Config ---
-PORT = SO100Driver.args.port
-URDF = SO100Driver.args.urdf if SO100Driver.args.urdf else "../SO100/URDF/so100.urdf"
+def parse_arguments():
+    """Parse command line arguments for visualization"""
+    parser = argparse.ArgumentParser(description='SO-100 to AR4 Visualization')
+    parser.add_argument('--port', '-p', type=str, default='COM5', help='Serial port (e.g., COM5 or /dev/ttyUSB0)')
+    parser.add_argument('--urdf', '-u', type=str, default="../demo/SO100/URDF/so100.urdf", help='Path to URDF file')
+    parser.add_argument('--simulation', '-s', action='store_true', help='Run in simulation mode')
+    return parser.parse_args()
 
-def main():
-    print("Hardware init...")
-    leader = SO100Driver(port=PORT, urdf_path=URDF, simulation=False)
+def draw_safety_zone(ax, config):
+    """
+    Kirajzolja az AR4 munkaterének határait (halvány "szellem" henger).
+    """
+    # Felbontás a körrajzoláshoz
+    theta = np.linspace(0, 2*np.pi, 50)
+    z = np.linspace(config.min_z, config.max_z, 10)
     
+    # Rácsok létrehozása (Meshgrid)
+    theta_grid, z_grid = np.meshgrid(theta, z)
+    
+    # --- 1. KÜLSŐ HENGER (Max Reach) ---
+    x_outer = config.max_radius * np.cos(theta_grid)
+    y_outer = config.max_radius * np.sin(theta_grid)
+    
+    ax.plot_surface(x_outer, y_outer, z_grid, 
+                    color='gray', alpha=0.1, rstride=5, cstride=5) # alpha=0.1 -> Nagyon halvány
+
+    # --- 2. BELSŐ HENGER (Dead Zone) ---
+    # Ez mutatja, miért nem tud "függőlegesen" állni a robot
+    x_inner = config.min_radius * np.cos(theta_grid)
+    y_inner = config.min_radius * np.sin(theta_grid)
+    
+    ax.plot_surface(x_inner, y_inner, z_grid, 
+                    color='red', alpha=0.15, rstride=5, cstride=5) # Picit pirosas, hogy ijesztő legyen
+
+    # --- 3. PADLÓ és PLAFON (Drótváz körök) ---
+    # Csak vonalakkal rajzoljuk, hogy ne takarjon ki mindent
+    ax.plot(x_outer[0, :], y_outer[0, :], config.min_z, 'k--', alpha=0.3) # Padló külső kör
+    ax.plot(x_inner[0, :], y_inner[0, :], config.min_z, 'r--', alpha=0.3) # Padló belső kör
+    
+    ax.plot(x_outer[-1, :], y_outer[-1, :], config.max_z, 'k--', alpha=0.3) # Plafon külső
+
+args = parse_arguments()
+PORT = args.port
+URDF = args.urdf
+
+def main(port_name=None, urdf_path=None, simulation=False):
+    print("Hardware init...")
+    
+    # Determine the correct URDF path based on working directory
+    if urdf_path is None:
+        # Try different possible paths
+        possible_paths = [
+            args.urdf,                     # from command line argument
+            "SO100/URDF/so100.urdf",        # from demo directory
+            "../demo/SO100/URDF/so100.urdf", # from visualisation directory
+            "URDF/so100.urdf"              # from SO100 directory
+        ]
+        
+        urdf_path = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                urdf_path = path
+                print(f"Found URDF at: {urdf_path}")
+                break
+        
+        if urdf_path is None:
+            raise FileNotFoundError("Could not find so100.urdf file")
+    
+    # Set up sys.argv for SO100Driver
+    original_argv = sys.argv.copy()
+    sys.argv = ['main_viz.py', '--urdf', urdf_path]
+    if simulation:
+        sys.argv.append('--simulation')
+    if port_name:
+        sys.argv.extend(['--port', port_name])
+    
+    try:
+        leader = SO100Driver()
+    finally:
+        sys.argv = original_argv  # Restore original argv
+
     # Create the "Bridge" configuration
     config = MappingConfig(
         scale_factor=1.8,
@@ -35,7 +117,7 @@ def main():
     
     # 2. Graphics
     plt.ion()
-    fig, ax = plot_utils.init_3d_figure()
+    fig, ax = init_3d_figure()
     
     print("\n--- Control ---")
     print("Move the SO-100 manually.")
@@ -72,11 +154,22 @@ def main():
             ax.set_xlim(-0.8, 0.8); ax.set_ylim(-0.8, 0.8); ax.set_zlim(0, 0.8)
             ax.set_xlabel('X'); ax.set_ylabel('Y'); ax.set_zlabel('Z')
             
+            draw_safety_zone(ax, bridge.config)
+
             # SO-100 (Blue)
             leader.chain.plot(angles, ax, target=so100_pos)
             
+            # Change color based on if it's on limit
+            target_color = 'orange' if bridge.limit_reached else 'red'
+
             # AR4 Target (Red Sphere)
-            ax.scatter(ar4_target[0], ar4_target[1], ar4_target[2], c='red', s=100, label='AR4 Target')
+            #ax.scatter(ar4_target[0], ar4_target[1], ar4_target[2], c='red', s=100, label='AR4 Target')
+            ax.scatter(ar4_target[0], ar4_target[1], ar4_target[2], c=target_color, s=100, label='AR4 Target')
+
+            # Set robot arm text
+            ax.text(so100_pos[0], so100_pos[1], so100_pos[2] + 0.05, "SO-100 (Leader)", color='blue', fontsize=10, fontweight='bold')
+            label_text = "AR4 (Limit!)" if bridge.limit_reached else "AR4 Target"
+            ax.text(ar4_target[0], ar4_target[1], ar4_target[2] + 0.05, label_text, color=target_color, fontsize=10, fontweight='bold')
             
             # Visual helper lines
             ax.plot([so100_pos[0], ar4_target[0]], 
@@ -87,7 +180,10 @@ def main():
             title_str = (f"Scale: {config.scale_factor:.1f}x | "
                          f"Offset X: {config.offset_x:.2f}m | "
                          f"Target Z: {ar4_target[2]:.2f}m")
-            ax.set_title(title_str)
+            if bridge.limit_reached:
+                ax.set_title(f"!!! LIMIT REACHED !!! Z={ar4_target[2]:.2f}m", color='red')
+            else:
+                ax.set_title(title_str)
             
             fig.canvas.draw()
             fig.canvas.flush_events()
