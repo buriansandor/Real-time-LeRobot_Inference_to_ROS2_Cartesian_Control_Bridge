@@ -139,11 +139,28 @@ def main(port_name=None, urdf_path=None, simulation=False, hardware=1):
     print("  [Q/E] : Increase/decrease scaling")
     print("  [ESC] : Exit")
     
+    last_follower_angles = [0] * len(bridge.follower_chain.links) if bridge.follower_chain else [0]*7
     try:
         while True:
             # --- INPUT ---
             angles = leader.get_joint_angles()
             so100_pos = leader.get_tcp_position(angles)
+
+            # the follower arm
+            target_pos = bridge.transform(so100_pos)
+            if bridge.follower_chain:
+                # Az ikpy IK solverét használjuk
+                follower_angles = bridge.follower_chain.inverse_kinematics(
+                    target_position=target_pos, 
+                    initial_position=last_follower_angles  
+                )
+                last_follower_angles = follower_angles
+                # Kiszámoljuk, hova sikerült ténylegesen eljutni (ellenőrzés)
+                actual_ar4_pos = bridge.follower_chain.forward_kinematics(follower_angles)[:3, 3]
+            else:
+                follower_angles = [0] * 7 # Ha nincs URDF, maradjon alaphelyzetben
+                actual_ar4_pos = target_pos
+                last_follower_angles = follower_angles
             
             # --- mapping changes with keyboard ---
             # live callibration of AR4
@@ -170,7 +187,9 @@ def main(port_name=None, urdf_path=None, simulation=False, hardware=1):
 
             # SO-100 (Blue)
             leader.chain.plot(angles, ax, target=so100_pos)
-            
+
+            # follower arm
+            bridge.follower_chain.plot(follower_angles, ax, target=target_pos)
             # Change color based on if it's on limit
             target_color = 'orange' if bridge.limit_reached else 'red'
 
