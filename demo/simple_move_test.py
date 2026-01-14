@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+"""
+SO100 Robot Driver Demo
+Created by Sandor Burian with the help of Gooogle Gemini Pro.
+This script demonstrates simple movements of the SO100 robotic arm using the SO100ControlDriver.
+"""
+
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
