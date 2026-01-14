@@ -2,7 +2,7 @@
 
 [![Pylint](https://github.com/buriansandor/Real-time-LeRobot_Inference_to_ROS2_Cartesian_Control_Bridge/actions/workflows/pylint.yml/badge.svg)](https://github.com/buriansandor/Real-time-LeRobot_Inference_to_ROS2_Cartesian_Control_Bridge/actions/workflows/pylint.yml)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 [![Code style: pylint](https://img.shields.io/badge/code%20style-pylint-blue)](https://pylint.pycqa.org/)
 
 <!-- not yet
