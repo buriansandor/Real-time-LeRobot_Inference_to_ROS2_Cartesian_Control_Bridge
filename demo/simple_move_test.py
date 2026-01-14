@@ -13,7 +13,7 @@ from demo.SO100.so100_control_driver import SO100ControlDriver
 import time
 import math
 
-port_id = input("Enter the COM port ID (e.g., COM4 or /dev/ttyUSB0): ").strip()
+port_id = input("Enter the COM port ID (e.g., COM4 or /dev/ttyUSB0) (If you are not sure, use the 'lerobot-find-port'): ").strip()
 driver = SO100ControlDriver(port=port_id, urdf_path="URDF/so100.urdf", simulation=False)
 
 print("Starting...")
