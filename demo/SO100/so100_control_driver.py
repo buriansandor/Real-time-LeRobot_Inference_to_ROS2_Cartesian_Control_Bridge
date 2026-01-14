@@ -6,6 +6,8 @@ This driver interfaces with the SO100 robotic arm using serial communication.
 It also integrates with IKPy for kinematics calculations.
 """
 
+import os
+import ikpy.chain
 import serial
 import time
 import struct
@@ -13,30 +15,64 @@ import math
 import csv
 
 class SO100ControlDriver:
-    def __init__(self, port, calibration_file="calibration_data.csv", simulation=False):
-        """
-        Driver for SO100 robotic arm.
-        """
-        self.simulation = simulation
-        self.port = port
+    def __init__(self, port=None, urdf_path="URDF/so100.urdf", calibration_file="callibration_data.csv", simulation=False):
+
+        if port is None and not simulation:
+            args = self.parse_arguments()
+            self.simulation = args.simulation
+            if os.windows():
+                self.port = getattr(args, 'port', 'COM5') # Default port for Windows
+            else:
+                self.port = getattr(args, 'port', '/dev/ttyUSB0') # Default port
+            urdf_to_load = args.urdf
+            calib_to_load = args.calibration_file
+            motor_ids = args.motor_ids
+        else:
+            self.simulation = simulation
+            self.port = port
+            urdf_to_load = urdf_path
+            calib_to_load = calibration_file
+            motor_ids = [1, 2, 3, 4, 5, 6]
+
+        # Fix paths to be relative to this file's directory
+        script_dir = os.path.dirname(os.path.abspath(__file__))
         
-        # default values
-        self.ZERO_OFFSETS = [2048] * 6
-        self.DIRECTIONS = [1] * 6
-        self.CALIBRATION_POSE_ADJUSTMENTS = [0] * 6
+        # Only add script_dir if the paths are relative (don't start with / or C:)
+        if not os.path.isabs(urdf_to_load):
+            urdf_to_load = os.path.join(script_dir, urdf_to_load).replace('\\', '/')
+        if not os.path.isabs(calib_to_load):
+            calib_to_load = os.path.join(script_dir, calib_to_load).replace('\\', '/')
+
+        self.chain = ikpy.chain.Chain.from_urdf_file(urdf_to_load, base_elements=["base"])
+        self.n_motors = len(motor_ids)
         
-        # Calibration loading
-        self._load_calibration(calibration_file)
-        
+        try:
+            with open(calib_to_load, 'r') as file:
+                reader = csv.reader(file)
+                for row in reader:
+                    if len(row) > 1:
+                        param_name = row[0]
+                        values = [float(x) if '.' in x else int(x) for x in row[1:]]
+                        if param_name == 'ZERO_OFFSETS': self.ZERO_OFFSETS = values
+                        elif param_name == 'DIRECTIONS': self.DIRECTIONS = values
+                        elif param_name == 'CALIBRATION_POSE_ADJUSTMENTS': self.CALIBRATION_POSE_ADJUSTMENTS = values
+        except FileNotFoundError:
+            print(f"ERROR: Cannot find calibration file ({calib_to_load})!")
+            print("Using default calibration values...")
+            # Default values to prevent crashes
+            self.ZERO_OFFSETS = [2048] * 6
+            self.DIRECTIONS = [1] * 6
+            self.CALIBRATION_POSE_ADJUSTMENTS = [0] * 6
+            print("✓ Default calibration loaded: ", "zero offsets:", self.ZERO_OFFSETS, " directions: ", self.DIRECTIONS, " calibration pose adjustments: ", self.CALIBRATION_POSE_ADJUSTMENTS)
+
+        # Connection
         self.ser = None
-        if not self.simulation:
+        if not self.simulation and self.port:
             try:
-                print(f"[Driver] Connecting to: {port}...")
-                self.ser = serial.Serial(port, 1000000, timeout=0.05)
-                print("[Driver] Successful connection!")
+                self.ser = serial.Serial(self.port, 1000000, timeout=0.1)
+                print(f"Successful connection: {self.port}")
             except Exception as e:
-                print(f"[Driver] ERROR: Could not connect: {e}")
-                print("[Driver] Switching to simulation mode.")
+                print(f"Failed to connect: {e}")
                 self.simulation = True
 
     def _load_calibration(self, filename):
@@ -51,12 +87,12 @@ class SO100ControlDriver:
                         self.DIRECTIONS = [int(x) for x in row[1:]]
                     elif row[0] == 'CALIBRATION_POSE_ADJUSTMENTS':
                         self.CALIBRATION_POSE_ADJUSTMENTS = [float(x) for x in row[1:]]
-            print(f"[Driver] Kalibráció betöltve innen: {filename}")
+            print(f"[Driver] Calibration loaded from: {filename}")
         except FileNotFoundError:
-            print("[Driver] FIGYELEM: Nincs kalibrációs fájl, alapértelmezett értékekkel indulok.")
+            print("[Driver] WARNING: Calibration file not found, using default values.")
 
     def _checksum(self, data):
-        """STS3215 Checksum számítás"""
+        """STS3215 Checksum calculation"""
         return (~sum(data)) & 0xFF
 
     def _write_packet(self, motor_id, instruction, parameters):
@@ -68,37 +104,39 @@ class SO100ControlDriver:
         checksum = self._checksum(packet[2:])
         packet.append(checksum)
         
-        self.ser.write(bytearray(packet))
-        # time.sleep(0.0005) # Kis várakozás biztonságból
+        try:
+            self.ser.write(bytearray(packet))
+            time.sleep(0.0002) 
+        except Exception as e:
+            print(f"Error while writing: {e}")
 
     def set_target_joints(self, target_radians, move_time_ms=500):
         """
-        A robot mozgatása a megadott radián szögekre.
-        target_radians: Lista [J1, J2, J3, J4, J5, J6] radiánban
-        move_time_ms: Mennyi idő alatt érjen oda (sebesség szabályozás)
+        Move the robot to the specified joint angles in radians.
+        target_radians: List [J1, J2, J3, J4, J5, J6] in radians
+        move_time_ms: Time in milliseconds to reach the target (speed control)
         """
         if self.simulation:
-            print(f"[SIM] Mozgás: {target_radians}")
+            print(f"[SIM] Movement: {target_radians}")
             return
 
-        # Sebesség/Idő számítása (STS3215 Time paraméter)
-        # Az STS motoroknál a sebességet vagy időt külön regiszterbe írjuk
-        # Itt egyszerűsítsünk: Position Move parancsot küldünk
+        # Speed/Time calculation (STS3215 Time parameter)
+        # For STS motors, speed or time is written to separate registers
+        # Here we simplify: we send a Position Move command with time parameter.
         
-        # Regiszterek: 
+        # Registers: 
         # 0x2A (42): Goal Position (2 byte)
-        # 0x2C (44): Goal Time (2 byte) - opcionális
-        # 0x2E (46): Goal Speed (2 byte) - opcionális
+        # 0x2C (44): Goal Time (2 byte) - optional
+        # 0x2E (46): Goal Speed (2 byte) - optional
         
-        speed_val = 2000 # Default sebesség (ha nincs időzítés)
-        # Ha időre akarunk menni, bonyolultabb. Most fix sebességgel menjünk.
+        speed_val = 2000 # Default speed (if no timing)
 
         for i, target_rad in enumerate(target_radians):
             motor_id = i + 1
             if motor_id > 6: break
             
-            # 1. Radián -> Nyers (Raw) konverzió
-            # Képlet: raw = ((rad - adjust) / (ratio * dir)) + offset
+            # 1. Radian -> Raw conversion
+            # Formula: raw = ((rad - adjust) / (ratio * dir)) + offset
             
             idx = i
             ratio = (2 * math.pi / 4096)
@@ -108,13 +146,13 @@ class SO100ControlDriver:
             
             raw_pos = int(raw_float)
             
-            # 2. Biztonsági vágás (0..4095)
+            # 2. Safety clipping (0..4095)
             raw_pos = max(0, min(4095, raw_pos))
             
-            # 3. Csomag összeállítása (Write Instruction 0x03)
-            # Cím: 0x2A (Goal Position)
-            # Adat: [LowPos, HighPos, LowTime, HighTime, LowSpd, HighSpd] 
-            # (STS3215 Sync Write-ot is tudna, de most csináljuk egyenként)
+            # 3. Packet assembly (Write Instruction 0x03)
+            # Address: 0x2A (Goal Position)
+            # Data: [LowPos, HighPos, LowTime, HighTime, LowSpd, HighSpd] 
+            # (STS3215 also supports Sync Write, but we'll do it individually for now)
             
             p_low = raw_pos & 0xFF
             p_high = (raw_pos >> 8) & 0xFF
@@ -122,7 +160,7 @@ class SO100ControlDriver:
             t_low = move_time_ms & 0xFF
             t_high = (move_time_ms >> 8) & 0xFF
             
-            s_low = 0    # Speed 0 = Max sebesség (az idő dominál)
+            s_low = 0    # Speed 0 = Max speed (time dominates)
             s_high = 0
             
             # Reg 42-től írunk 6 bájtot (Pozíció + Idő + Sebesség)
@@ -132,12 +170,98 @@ class SO100ControlDriver:
 
     def read_current_joints(self):
         """Visszaadja a jelenlegi szögeket radiánban [J1...J6]"""
-        # (Itt felhasználhatod a régi kód 'read_raw_position' és 'get_joint_angles' logikáját)
-        # A rövidség kedvéért ezt most nem másolom be újra, de 
-        # UGYANAZT a logikát kell ide betenni, ami a régi driverben volt.
-        pass # <--- IDE MÁSOLD BE A READ LOGIKÁT A RÉGI DRIVERBŐL
+        if self.simulation: return 2048
+        
+        msg = [0xFF, 0xFF, motor_id, 0x04, 0x02, 0x38, 0x02]
+        msg.append(self.checksum(msg[2:]))
+        self.ser.reset_input_buffer()
+        self.ser.write(bytearray(msg))
+        response = self.ser.read(8)
+        if len(response) == 8:
+            return struct.unpack('<H', response[5:7])[0]
+        return None
+
+    def get_joint_angles(self):
+        """Joint angle in radian"""
+        if self.simulation:
+            t = time.time()
+            sim_base = [0, math.sin(t)*0.5, math.cos(t)*0.5, -1.0, -0.5, 0]
+            return [b + a for b, a in zip(sim_base, self.CALIBRATION_POSE_ADJUSTMENTS)] + [0]
+
+        angles = [0] # Base
+        for i in range(1, self.n_motors + 1): # Motor ID 1..6
+            idx = i - 1             
+            raw = self.read_raw_position(i)
+            if raw is None: raw = self.ZERO_OFFSETS[idx]
+
+            # 1. raw -> relative
+            offset = self.ZERO_OFFSETS[idx]
+            direction = self.DIRECTIONS[idx]
+            rel_rad = (raw - offset) * (2 * math.pi / 4096) * direction
+            
+            # 2. correction
+            final_rad = rel_rad + self.CALIBRATION_POSE_ADJUSTMENTS[idx]
+            angles.append(final_rad)
+            
+        # if angle list is shorter than number of motors (e.g. for gripper)
+        while len(angles) < self.n_motors:
+            angles.append(0)
+            
+        return angles
 
     def torque_disable(self):
-        """Motorok lazítása"""
+        """Disable motors"""
         for i in range(1, 7):
-            self._write_packet(i, 0x03, [0x28, 0x00]) # 0x28 = Torque Enable regiszter, 0 = OFF
+            self._write_packet(i, 0x03, [0x28, 0x00]) # 0x28 = Torque Enable register, 0 = OFF
+    
+    def set_target_angle(self, motor_index, angle_radians, move_time_ms=500):
+        """
+        Sets the target angle for a specified motor and initiates movement.
+        This method converts the desired angle in radians to the motor's raw position value,
+        applies necessary offsets, directions, and calibration adjustments, and sends a
+        control packet to the motor to move to the target position over the specified time.
+        Parameters:
+        motor_index (int): Index of the motor to control, ranging from 0 to 5 (where 0 corresponds to motor 1).
+        angle_radians (float): Target angle in radians to set for the motor.
+        move_time_ms (int, optional): Time in milliseconds for the motor to reach the target angle. Defaults to 500.
+        Notes:
+        - The method performs no operation if the system is in simulation mode.
+        - Raw position values are clamped to the range 0-4095.
+        - The motor uses STS3215 protocol, writing to registers for goal position, time, and speed.
+        
+        move motors to a specific angle in radians
+        angle_radians: target angle in radians
+        motor_index: 0-tól 5-ig (0 = 1-es motor)
+        """
+        if self.simulation: return
+
+        motor_id = motor_index + 1
+        
+        # 1. Radian -> raw (Raw 0-4096)
+        offset = self.ZERO_OFFSETS[motor_index]
+        direction = self.DIRECTIONS[motor_index]
+        calib = self.CALIBRATION_POSE_ADJUSTMENTS[motor_index]
+        
+        # read: final = (raw - offset) * ratio * dir + calib
+        # write: raw = ((final - calib) / (ratio * dir)) + offset
+        
+        ratio = (2 * math.pi / 4096)
+        raw_val = ((angle_radians - calib) / (ratio * direction)) + offset
+        raw_int = int(raw_val)
+        
+        raw_int = max(0, min(4095, raw_int))
+        
+        # 2. move
+        # STS3215: Register 42 (Goal Position) + Reg 44 (Time) + Reg 46 (Speed)
+        
+        p_low = raw_int & 0xFF
+        p_high = (raw_int >> 8) & 0xFF
+        
+        t_low = move_time_ms & 0xFF
+        t_high = (move_time_ms >> 8) & 0xFF
+        
+        s_low = 0; s_high = 0
+        
+        # Write Instruction (0x03) to address 0x2A (42)
+        params = [0x2A, p_low, p_high, t_low, t_high, s_low, s_high]
+        self._write_packet(motor_id, 0x03, params)
