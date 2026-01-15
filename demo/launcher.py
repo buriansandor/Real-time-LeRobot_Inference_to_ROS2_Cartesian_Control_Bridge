@@ -11,7 +11,7 @@ import os
 import serial.tools.list_ports
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from visualisation.main_viz import main as start_visualization # Importáljuk a fő programot
+from visualisation.main_viz import main as start_visualization 
 
 def find_robot_port():
     return 'COM5'
