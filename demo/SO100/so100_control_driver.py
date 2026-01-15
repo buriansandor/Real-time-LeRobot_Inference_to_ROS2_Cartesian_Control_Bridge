@@ -75,6 +75,12 @@ class SO100ControlDriver:
                 print(f"Failed to connect: {e}")
                 self.simulation = True
 
+    def show_current_calibration(self):
+        print("Current Calibration Parameters:")
+        print(f" - ZERO_OFFSETS: {self.ZERO_OFFSETS}")
+        print(f" - DIRECTIONS: {self.DIRECTIONS}")
+        print(f" - CALIBRATION_POSE_ADJUSTMENTS: {self.CALIBRATION_POSE_ADJUSTMENTS}")
+
     def _load_calibration(self, filename):
         try:
             with open(filename, 'r') as file:
@@ -163,17 +169,73 @@ class SO100ControlDriver:
             s_low = 0    # Speed 0 = Max speed (time dominates)
             s_high = 0
             
-            # Reg 42-től írunk 6 bájtot (Pozíció + Idő + Sebesség)
+            # Starting at register 42 write 6 bytes (Position, Time, Speed)
             params = [0x2A, p_low, p_high, t_low, t_high, s_low, s_high]
             
             self._write_packet(motor_id, 0x03, params)
 
+    def read_register(self, motor_id, reg_addr, length=2):
+        """
+        Read a register value from a motor.
+        reg_addr: The register address (e.g., 9 or 11)
+        length: Number of bytes to read (usually 2 bytes for STS)
+        """
+        if self.simulation: return 0
+        
+        # Instruction 0x02 = READ
+        # Parameters: [Register Address, Read Length]
+        params = [reg_addr, length]
+        
+        # Packet assembly (same as write, but without ID in params)
+        # Packet: [FF, FF, ID, Len, Instr(02), Reg, ReadLen, Chk]
+        msg_len = len(params) + 2
+        packet = [0xFF, 0xFF, motor_id, msg_len, 0x02] + params
+        checksum = self._checksum(packet[2:])
+        packet.append(checksum)
+        
+        # 1. Clear the buffer (to avoid reading old garbage)
+        self.ser.reset_input_buffer()
+        
+        # 2. Send
+        self.ser.write(bytearray(packet))
+        
+        # 3. Read response
+        # Response length: Header(2) + ID(1) + Len(1) + Err(1) + Data(length) + Chk(1)
+        expected_bytes = 6 + length
+        response = self.ser.read(expected_bytes)
+        
+        if len(response) < expected_bytes:
+            print(f"[Driver] Error: No response from motor {motor_id}!")
+            return None
+            
+        # 4. Unpack data (Little Endian)
+        # Data starts from the 5th byte of the response
+        if length == 2:
+            value = response[5] + (response[6] << 8)
+            return value
+        elif length == 1:
+            return response[5]
+            
+        return 0
+
     def read_current_joints(self):
-        """Visszaadja a jelenlegi szögeket radiánban [J1...J6]"""
+        """Get current joint angles in radians"""
         if self.simulation: return 2048
         
         msg = [0xFF, 0xFF, motor_id, 0x04, 0x02, 0x38, 0x02]
-        msg.append(self.checksum(msg[2:]))
+        msg.append(self._checksum(msg[2:]))
+        self.ser.reset_input_buffer()
+        self.ser.write(bytearray(msg))
+        response = self.ser.read(8)
+        if len(response) == 8:
+            return struct.unpack('<H', response[5:7])[0]
+        return None
+
+    def read_raw_position(self, motor_id):
+        if self.simulation: return 2048
+        
+        msg = [0xFF, 0xFF, motor_id, 0x04, 0x02, 0x38, 0x02]
+        msg.append(self._checksum(msg[2:]))
         self.ser.reset_input_buffer()
         self.ser.write(bytearray(msg))
         response = self.ser.read(8)
@@ -214,7 +276,7 @@ class SO100ControlDriver:
         for i in range(1, 7):
             self._write_packet(i, 0x03, [0x28, 0x00]) # 0x28 = Torque Enable register, 0 = OFF
     
-    def set_target_angle(self, motor_index, angle_radians, move_time_ms=500):
+    def set_target_angle(self, motor_index, angle_radians, move_time_ms=1000):
         """
         Sets the target angle for a specified motor and initiates movement.
         This method converts the desired angle in radians to the motor's raw position value,
@@ -237,6 +299,8 @@ class SO100ControlDriver:
 
         motor_id = motor_index + 1
         
+        self._write_packet(motor_id, 0x03, [0x28, 0x01])
+
         # 1. Radian -> raw (Raw 0-4096)
         offset = self.ZERO_OFFSETS[motor_index]
         direction = self.DIRECTIONS[motor_index]
@@ -248,7 +312,9 @@ class SO100ControlDriver:
         ratio = (2 * math.pi / 4096)
         raw_val = ((angle_radians - calib) / (ratio * direction)) + offset
         raw_int = int(raw_val)
-        
+
+        print(f"[DEBUG] Motor {motor_id}: Target angle={angle_radians:.2f} -> Offset={offset} -> Calculated RAW={raw_int}")
+       
         raw_int = max(0, min(4095, raw_int))
         
         # 2. move
