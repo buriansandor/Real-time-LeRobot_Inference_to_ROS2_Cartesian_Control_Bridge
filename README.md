@@ -1,4 +1,7 @@
 # Real-time LeRobot Inference to ROS2 Cartesian Control Bridge
+<!--
+Created by Sandor Burian with the help of GitHub Copilot (Claude Sonnet 4)
+-->
 
 [![Pylint](https://github.com/buriansandor/Real-time-LeRobot_Inference_to_ROS2_Cartesian_Control_Bridge/actions/workflows/pylint.yml/badge.svg)](https://github.com/buriansandor/Real-time-LeRobot_Inference_to_ROS2_Cartesian_Control_Bridge/actions/workflows/pylint.yml)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
@@ -9,9 +12,11 @@
 [![Model on HF](https://huggingface.co/datasets/huggingface/badges/resolve/main/model-on-hf-sm-dark.svg)]()
 [![Paper page](https://huggingface.co/datasets/huggingface/badges/resolve/main/paper-page-sm-dark.svg)]()-->
 
-<!--
-Created by Sandor Burian with the help of GitHub Copilot (Claude Sonnet 4)
--->
+----
+[Hungarian Readme](documentation_translations/hu-HU/README.md)
+----
+
+
 
 > **Real-time Robot-to-Robot Control Bridge with Multiple Operation Modes**
 >
@@ -66,6 +71,9 @@ The launcher provides **three operation modes**:
 - Complete simulation without hardware requirements
 - Ideal for development, testing, and demonstration
 - Full 3D visualization with real-time kinematic feedback
+
+#### **Cartrasian Mode**
+> read about setup of carttasian in: [SETUP_GUIDE](SETUP_GUIDE.md)
 
 ## 📁 **Project Structure**
 
