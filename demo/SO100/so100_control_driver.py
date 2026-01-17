@@ -81,6 +81,9 @@ class SO100ControlDriver:
         print(f" - DIRECTIONS: {self.DIRECTIONS}")
         print(f" - CALIBRATION_POSE_ADJUSTMENTS: {self.CALIBRATION_POSE_ADJUSTMENTS}")
 
+    def torque_enable(self, servo_id):
+        return self._write_packet(servo_id, 40, [1])
+
     def _load_calibration(self, filename):
         try:
             with open(filename, 'r') as file:
@@ -275,6 +278,23 @@ class SO100ControlDriver:
         """Disable motors"""
         for i in range(1, 7):
             self._write_packet(i, 0x03, [0x28, 0x00]) # 0x28 = Torque Enable register, 0 = OFF
+    
+    def read_angle(self, servo_id):
+        """
+        Conversion from raw value to radians based on calibration
+        
+        :param self: Description
+        :param servo_id: Description
+        """
+        raw_pos = self.read_raw_position(servo_id)
+        if raw_pos == -1:
+            return None
+        
+        # 1. Subtract the offset (the zero position)
+        # 2. Multiply by the direction (1 or -1)
+        # 3. Convert the 4096 steps to radians (2 * pi / 4096)
+        angle = (raw_pos - self.ZERO_OFFSETS[servo_id]) * self.DIRECTIONS[servo_id] * (2 * 3.14159 / 4096)
+        return angle
     
     def set_target_angle(self, motor_index, angle_radians, move_time_ms=1000):
         """
