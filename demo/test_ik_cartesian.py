@@ -41,7 +41,7 @@ if URDF_PATH == '':
 
 
 def main():
-    print("=== SO-100 INVERSE KINEMATICS (XYZ) TEST ===")
+    print("\n\n=== SO-100 INVERSE KINEMATICS (XYZ) TEST ===")
     
     # 1. Driver initialising
     print(f"Connecting ({PORT})...")
