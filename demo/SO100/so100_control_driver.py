@@ -34,14 +34,8 @@ class SO100ControlDriver:
             calib_to_load = calibration_file
             motor_ids = [1, 2, 3, 4, 5, 6]
 
-        # Fix paths to be relative to this file's directory
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        
-        # Only add script_dir if the paths are relative (don't start with / or C:)
-        if not os.path.isabs(urdf_to_load):
-            urdf_to_load = os.path.join(script_dir, urdf_to_load).replace('\\', '/')
-        if not os.path.isabs(calib_to_load):
-            calib_to_load = os.path.join(script_dir, calib_to_load).replace('\\', '/')
+        urdf_to_load = self.config_file_reader(urdf_to_load)
+        calib_to_load = self.config_file_reader(calib_to_load)
 
         self.chain = ikpy.chain.Chain.from_urdf_file(urdf_to_load, base_elements=["base"])
         self.n_motors = len(motor_ids)
@@ -49,6 +43,7 @@ class SO100ControlDriver:
         try:
             with open(calib_to_load, 'r') as file:
                 reader = csv.reader(file)
+                print("✓ Calibration file loaded:", calib_to_load)
                 for row in reader:
                     if len(row) > 1:
                         param_name = row[0]
@@ -63,7 +58,7 @@ class SO100ControlDriver:
             self.ZERO_OFFSETS = [2048] * 6
             self.DIRECTIONS = [1] * 6
             self.CALIBRATION_POSE_ADJUSTMENTS = [0] * 6
-            print("✓ Default calibration loaded: ", "zero offsets:", self.ZERO_OFFSETS, " directions: ", self.DIRECTIONS, " calibration pose adjustments: ", self.CALIBRATION_POSE_ADJUSTMENTS)
+            print("[WARNING] Default calibration loaded: ", "zero offsets:", self.ZERO_OFFSETS, " directions: ", self.DIRECTIONS, " calibration pose adjustments: ", self.CALIBRATION_POSE_ADJUSTMENTS)
 
         # Connection
         self.ser = None
@@ -74,6 +69,24 @@ class SO100ControlDriver:
             except Exception as e:
                 print(f"Failed to connect: {e}")
                 self.simulation = True
+
+    def config_file_reader(self, file_to_load):
+        """
+        Smart path resolution - try current working directory first, then script directory
+        Based on Cpilot
+        """
+
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # For URDF file
+        if not os.path.isabs(file_to_load):
+            # Try from current working directory first
+            if os.path.exists(file_to_load):
+                to_load = os.path.abspath(file_to_load).replace('\\', '/')
+            else:
+                # Fallback to script directory
+                to_load = os.path.join(script_dir, file_to_load).replace('\\', '/')
+        return to_load
 
     def show_current_calibration(self):
         print("Current Calibration Parameters:")
