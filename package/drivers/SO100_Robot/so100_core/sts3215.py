@@ -1,7 +1,14 @@
+"""STS3215 Driver for SO100 Robotű
+Created by Sandor Burian with the help of Copilot(Claude).
+
+This module provides low-level communication with the STS3215 servomotors used in the SO100 robotic arm.
+It supports reading positions, writing target positions, and synchronized movements.
+"""
+
 import time
 import serial
-import time
 import struct
+import math
 
 class STS3215Driver:
     def __init__(self, port, baudrate=1000000, timeout=0.05):
@@ -56,8 +63,8 @@ class STS3215Driver:
 
     def sync_write_pos_time(self, id_pos_time_list):
         """
-        Egyszerre mozgat több motort (SYNC WRITE).
-        id_pos_time_list: Lista tuple-ökből -> [(motor_id, pozíció, idő_ms), ...]
+        Moves multiple motors simultaneously (SYNC WRITE).
+        id_pos_time_list: List of tuples -> [(motor_id, position, time_ms), ...]
         """
         # STS3215 Sync Write (Instruction 0x83)
         # Start Address: 0x2A (Position Low)
@@ -80,13 +87,13 @@ class STS3215Driver:
             params.append(time_val & 0xFF)
             params.append((time_val >> 8) & 0xFF)
             
-        # ID 0xFE a Broadcast ID Sync Write-nál
+        # ID 0xFE is the Broadcast ID for Sync Write
         self._write_packet(0xFE, 0x83, params)
 
     def sync_write_pos_time_speed(self, id_pos_time_speed_list):
         """
-        Egyszerre mozgat több motort (SYNC WRITE) sebességgel.
-        id_pos_time_speed_list: Lista tuple-ökből -> [(motor_id, pozíció, idő_ms, speed), ...]
+        Moves multiple motors simultaneously (SYNC WRITE) with speed.
+        id_pos_time_speed_list: List of tuples -> [(motor_id, position, time_ms, speed), ...]
         """
         # STS3215 Sync Write (Instruction 0x83)
         # Start Address: 0x2A (Position Low)
@@ -113,7 +120,7 @@ class STS3215Driver:
             params.append(speed_val & 0xFF)
             params.append((speed_val >> 8) & 0xFF)
             
-        # ID 0xFE a Broadcast ID Sync Write-nál
+        # ID 0xFE is the Broadcast ID for Sync Write
         self._write_packet(0xFE, 0x83, params)
 
     def torque_enable(self, motor_id, enable=True):

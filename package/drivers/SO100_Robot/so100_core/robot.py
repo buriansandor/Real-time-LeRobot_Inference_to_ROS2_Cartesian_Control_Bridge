@@ -1,7 +1,7 @@
 """
 SO100 Robot Core Module
 Handles robot initialization, kinematics, and motor control.
-Created by Sandor Burian based on the summarization of Google Gemini Pro about the so100_robot.py.
+Created by Copilot based on Sandor Burian's summarization of so100_robot.py.
 Extended and translated with Copilot.
 """
 import time
@@ -27,32 +27,32 @@ class SO100Robot:
         else:
             self.simulation = True
         
-        # --- ÚTVONAL KERESÉS ---
+        # --- PATH SEARCH ---
         if config_dir is None:
             current_file_path = os.path.abspath(__file__)
             current_dir = os.path.dirname(current_file_path)
             config_dir = os.path.join(current_dir, "config")
         else:
-            # Ha meg van adva config_dir, ellenőrizzük hogy relatív-e
+            # If config_dir is specified, check if it's relative
             if not os.path.isabs(config_dir):
-                # Ha relatív, akkor a SO100_Robot könyvtárból induljon
-                so100_robot_dir = os.path.dirname(os.path.dirname(__file__))  # SO100_Robot mappa
+                # If relative, start from SO100_Robot directory
+                so100_robot_dir = os.path.dirname(os.path.dirname(__file__))  # SO100_Robot folder
                 config_dir = os.path.join(so100_robot_dir, config_dir)
             
-        print(f"[DEBUG] Config mappa helye: {config_dir}")
+        print(f"[DEBUG] Config folder location: {config_dir}")
 
         urdf_path = os.path.join(config_dir, "so100.urdf")
         if not os.path.exists(urdf_path):
-            print(f"[WARN] URDF nem található: {urdf_path}")
-            print("[INFO] Fallback: SO100_Robot/config használata...")
+            print(f"[WARN] URDF not found: {urdf_path}")
+            print("[INFO] Fallback: using SO100_Robot/config...")
             so100_robot_dir = os.path.dirname(os.path.dirname(__file__))
             config_dir = os.path.join(so100_robot_dir, "config")
             urdf_path = os.path.join(config_dir, "so100.urdf")
-            print(f"[DEBUG] Új URDF path: {urdf_path}")
+            print(f"[DEBUG] New URDF path: {urdf_path}")
         
         self.kinematics = SO100Kinematics(urdf_path)
         
-        # Alapértékek
+        # Default values
         self.offsets = {i: 2048 for i in range(6)}
         self.directions = {i: 1 for i in range(6)}
         self.adjustments = {i: 0.0 for i in range(6)}
@@ -104,7 +104,7 @@ class SO100Robot:
                             else: vals.append(0.0)
                         self.adjustments = {i: v for i, v in enumerate(vals)}
             
-            # DEBUG KIÍRÁS
+            # DEBUG OUTPUT
             print(f"[DEBUG] Offsets: {self.offsets}")
             print(f"[DEBUG] Directions: {self.directions}")
             print(f"[DEBUG] Adjustments: {self.adjustments}")
@@ -124,18 +124,18 @@ class SO100Robot:
 
     def _angle_to_raw(self, motor_index, radians):
         """
-        VISSZAÁLLÍTVA AZ EREDETI (so100_control_driver.py) LOGIKÁRA!
+        RESTORED TO ORIGINAL (so100_control_driver.py) LOGIC!
         """
         offset = self.offsets.get(motor_index, 2048)
         direction = self.directions.get(motor_index, 1)
         calib = self.adjustments.get(motor_index, 0.0)
         
-        # EREDETI KÉPLET:
+        # ORIGINAL FORMULA:
         # raw_val = ((angle_radians - calib) / (ratio * direction)) + offset
         
         ratio = (2 * math.pi / 4096)
         
-        # Figyeld a képletet: kivonás és osztás (az én verziómban szorzás volt)
+        # Note the formula: subtraction and division (my version had multiplication)
         raw_val = ((radians - calib) / (ratio * direction)) + offset
         
         return int(raw_val)
@@ -152,7 +152,7 @@ class SO100Robot:
                 angles.append(0.0)
                 continue
             
-            # Visszafejtés az eredeti logika alapján
+            # Reverse calculation based on original logic
             offset = self.offsets.get(i, 2048)
             direction = self.directions.get(i, 1)
             calib = self.adjustments.get(i, 0.0)
@@ -204,18 +204,18 @@ class SO100Robot:
 
     def move_to_joints(self, joint_angles, time_ms=200):  
         """
-        EREDETI LOGIKA: minden motor külön-külön, mint a working kódban
+        ORIGINAL LOGIC: each motor separately, like in the working code
         """
         for i, angle in enumerate(joint_angles):
-            if i == 5: continue  # Gripper külön kezelése
+            if i == 5: continue  # Gripper handled separately
             
             motor_id = i + 1
             raw_val = self._angle_to_raw(i, angle)
             
-            # 1. Torque enable (eredeti)
+            # 1. Torque enable (original)
             self._write_packet(motor_id, 0x03, [0x28, 0x01])
             
-            # 2. Pozíció parancs (eredeti 7-byte protokoll)
+            # 2. Position command (original 7-byte protocol)
             p_low = raw_val & 0xFF
             p_high = (raw_val >> 8) & 0xFF
             t_low = time_ms & 0xFF
@@ -223,11 +223,11 @@ class SO100Robot:
             s_low = 0  # Max speed
             s_high = 0
             
-            # EREDETI protokoll
+            # ORIGINAL protocol
             params = [0x2A, p_low, p_high, t_low, t_high, s_low, s_high]
             self._write_packet(motor_id, 0x03, params)
             
-            # EREDETI: 0.05s sleep minden motor után (ez volt a working kódban!)
+            # ORIGINAL: 0.05s sleep after each motor (this was in the working code!)
             time.sleep(0.05)
             
         self.current_joint_state = list(joint_angles)
@@ -235,14 +235,14 @@ class SO100Robot:
         # Wait for movement to complete
         time.sleep(time_ms / 1000.0)
 
-    def move_to_cartesian(self, x, y, z, pitch_rad=0.0, roll_rad=0.0, time_ms=200, ignore_orientation=True):  # Faster default
+    def move_to_cartesian(self, x, y, z,time_ms=200, ignore_orientation=True):  # Faster default
         seed = [0] + self.current_joint_state[:5] + [0] 
         
         # COORDINATE SYSTEM FIX: If "left is forward", negate Y axis
         # Try: y = -y to fix orientation issue
         corrected_y = -y  # Experimental fix for coordinate system
         
-        # IKPy hívás (most már a javított kinematics.py-val)
+        # IKPy call (now with the fixed kinematics.py)
         orient_mode = None if ignore_orientation else "Z"
         target_orient = None if ignore_orientation else [0, 0, -1]
 
@@ -255,19 +255,19 @@ class SO100Robot:
         
         motor_commands = target_joints[1:6]
         
-        # EREDETI MÓDSZER: motor-by-motor programozás mint a working demo!
+        # ORIGINAL METHOD: motor-by-motor programming like the working demo!
         print("Moving...")
         for motor_idx in range(5):  # 0..4 (Motor 1..5)
             ik_angle = motor_commands[motor_idx] 
             
-            # Pont mint az eredeti demo: set_target_angle minden motorra külön
+            # Just like the original demo: set_target_angle for each motor separately
             motor_id = motor_idx + 1
             raw_val = self._angle_to_raw(motor_idx, ik_angle)
             
-            # 1. Torque enable (eredeti)
+            # 1. Torque enable (original)
             self._write_packet(motor_id, 0x03, [0x28, 0x01])
             
-            # 2. Pozíció parancs (eredeti protokoll)
+            # 2. Position command (original protocol)
             p_low = raw_val & 0xFF
             p_high = (raw_val >> 8) & 0xFF
             t_low = time_ms & 0xFF
@@ -277,7 +277,7 @@ class SO100Robot:
             params = [0x2A, p_low, p_high, t_low, t_high, s_low, s_high]
             self._write_packet(motor_id, 0x03, params)
             
-            # EREDETI: 0.05s sleep minden motor után!
+            # ORIGINAL: 0.05s sleep after each motor!
             time.sleep(0.05)
         
         # Wait for movement to complete (plus small buffer)

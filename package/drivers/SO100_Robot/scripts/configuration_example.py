@@ -5,20 +5,21 @@ for SO100 Robot configuration.
 Created by Copilot based on Sandor Burian's code.
 """
 
+
 import sys
 import os
+import time
+from pathlib import Path
+import ikpy.chain
 
-# Add parent directories to path for imports
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+# Add the package root to Python path 
+script_dir = Path(__file__).parent
+package_root = script_dir.parent.parent.parent
+sys.path.insert(0, str(package_root))
 
-from so100_core import SO100Robot
-from utils import (
-    get_robot_configuration, 
-    get_port_input, 
-    get_port_with_detection,
-    get_calibration_file_input,
-    get_urdf_path_input
-)
+from drivers.SO100_Robot import SO100Robot
+from utils.input_utils import get_robot_configuration
+from utils.input_utils import get_port_input, get_calibration_file_input, get_urdf_path_input, get_port_with_detection
 
 
 def example_full_configuration():
@@ -107,7 +108,7 @@ def main():
             robot.torque_enable(True)
             print("Motors enabled successfully!")
             
-            finish = input("Press Enter to disable motors and exit...")
+            input("Press Enter to disable motors and exit...")
             robot.torque_enable(False)
             print("Motors disabled. Goodbye!")
         else:
