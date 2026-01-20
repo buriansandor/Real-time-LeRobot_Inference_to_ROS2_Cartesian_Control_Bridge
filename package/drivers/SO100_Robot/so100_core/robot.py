@@ -284,30 +284,32 @@ class SO100Robot:
         time.sleep(time_ms / 1000.0 + 0.1)
 
     def gripper_open(self):
-        """Open gripper (original working method)"""
-        val = self.gripper_limits['open']
+        """Open gripper (EXACT original working gripper_handler.py protocol)"""
         if not getattr(self, 'simulation', False):
-            # Enable torque first
-            self._write_packet(6, 0x03, [0x28, 0x01])
-            # Position command
-            p_low = val & 0xFF
-            p_high = (val >> 8) & 0xFF
-            params = [0x2A, p_low, p_high, 200, 0, 0, 0]  # 200ms movement
+            val = self.gripper_limits['open']
+            print(f"[DEBUG] Opening gripper to raw value: {val}")
+            
+            # EXACT original protocol from gripper_handler.py
+            # [0x2A, 0x00, val & 0xFF, (val >> 8) & 0xFF, 0x00, 0x00, 0x00, 0x00]
+            params = [0x2A, 0x00, val & 0xFF, (val >> 8) & 0xFF, 0x00, 0x00, 0x00, 0x00]
+            print(f"[DEBUG] Gripper packet (8 bytes): {params}")
+            
             self._write_packet(6, 0x03, params)
-        time.sleep(0.2)
+        time.sleep(1.0)  # Original wait time from gripper_handler
 
     def gripper_close(self):
-        """Close gripper (original working method)"""
-        val = self.gripper_limits['close']
+        """Close gripper (EXACT original working gripper_handler.py protocol)"""
         if not getattr(self, 'simulation', False):
-            # Enable torque first
-            self._write_packet(6, 0x03, [0x28, 0x01])
-            # Position command
-            p_low = val & 0xFF
-            p_high = (val >> 8) & 0xFF
-            params = [0x2A, p_low, p_high, 200, 0, 0, 0]  # 200ms movement
+            val = self.gripper_limits['close']
+            print(f"[DEBUG] Closing gripper to raw value: {val}")
+            
+            # EXACT original protocol from gripper_handler.py
+            # [0x2A, 0x00, val & 0xFF, (val >> 8) & 0xFF, 0x00, 0x00, 0x00, 0x00]
+            params = [0x2A, 0x00, val & 0xFF, (val >> 8) & 0xFF, 0x00, 0x00, 0x00, 0x00]
+            print(f"[DEBUG] Gripper packet (8 bytes): {params}")
+            
             self._write_packet(6, 0x03, params)
-        time.sleep(0.2)
+        time.sleep(1.0)  # Original wait time from gripper_handler
     
     def torque_enable(self, enable=True):
         """Enable/disable motor torque (original working method)"""

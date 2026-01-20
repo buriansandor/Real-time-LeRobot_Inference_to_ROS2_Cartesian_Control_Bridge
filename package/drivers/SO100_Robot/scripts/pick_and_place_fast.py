@@ -85,7 +85,7 @@ def simple_pick_and_place():
 
     # 1. Open gripper and move to pick position
     robot.gripper_open()
-    time.sleep(0.2)  # Reduced gripper wait time
+    time.sleep(1)  # Reduced gripper wait time
     
     move_to_fast(robot, PICK_POS[0], PICK_POS[1], SAFE_Z, time_ms=400)  # Fast movement
     
@@ -93,7 +93,7 @@ def simple_pick_and_place():
     
     # 2. Close gripper and lift
     robot.gripper_close()
-    time.sleep(0.2)  # Reduced gripper wait time
+    time.sleep(1)  # Reduced gripper wait time
     
     move_to_fast(robot, PICK_POS[0], PICK_POS[1], SAFE_Z, time_ms=400)  # Lift
     
@@ -102,7 +102,7 @@ def simple_pick_and_place():
     
     # 4. Open gripper and retreat
     robot.gripper_open()
-    time.sleep(0.2)  # Reduced gripper wait time
+    time.sleep(1)  # Reduced gripper wait time
     
     move_to_fast(robot, PLACE_POS[0], PLACE_POS[1], SAFE_Z, time_ms=400)  # Retreat
     
