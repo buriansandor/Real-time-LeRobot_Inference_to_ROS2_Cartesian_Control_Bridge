@@ -38,24 +38,17 @@ def get_port_input():
     Returns:
         str: Port name (e.g., 'COM4', '/dev/ttyUSB0')
     """
-    port = input("Enter the port of the follower arm (e.g., COM4 or /dev/ttyUSB0) or get the port with port detection(detect): ").strip()
+    port = input("Enter the port of the follower arm (e.g., COM4 or /dev/ttyUSB0) or get the port with port detection (detect): ").strip()
     
     if port == '':
         print("Setting port to the default: COM4")
         port = 'COM4'  # Change this to your follower's port if needed
     elif port.lower() == 'detect':
-        try:
-            from lerobot_functions import PortFinder
-            print("Set the port of leader arm")
-            port = PortFinder.find_port_with_lerobot()
-        except ImportError:
-            print("Warning: PortFinder not available, using manual port configuration.")
-            print("Please set LEADER_PORT and FOLLOWER_PORT manually, use 'lerobot-find-port' to find them in a separate console.")
-            # Fallback to manual input
-            port = input("Enter the port manually: ").strip()
-            if port == '':
-                port = 'COM4'
-    
+        port = None
+        port = get_port_with_detection()
+        if port is None:
+            print("Port detection failed. Please set the port manually.")
+            port = input("Enter the port of the follower arm (e.g., COM4 or /dev/ttyUSB0): ").strip()
     return port
 
 
@@ -82,11 +75,11 @@ def get_urdf_path_input():
     Returns:
         str: URDF file path
     """
-    urdf_path = input("Enter the URDF file path (default: URDF/so100.urdf): ").strip()
+    urdf_path = input("Enter the URDF file path (default: so100.urdf): ").strip()
     
     if urdf_path == '':
-        print("Setting URDF path to default: URDF/so100.urdf")
-        urdf_path = "URDF/so100.urdf"
+        print("Setting URDF path to default: so100.urdf")
+        urdf_path = "so100.urdf"
     
     return urdf_path
 
@@ -101,10 +94,12 @@ def get_port_with_detection():
     """
     try:
         from lerobot_functions import PortFinder
-        print("Auto-detecting port...")
+        print("Set the port of leader arm")
         port = PortFinder.find_port_with_lerobot()
-        print(f"Detected port: {port}")
-        return port
     except ImportError:
-        print("Warning: PortFinder not available for automatic detection.")
-        return None
+        print("Warning: PortFinder not available, using manual port configuration.")
+        print("Please set LEADER_PORT and FOLLOWER_PORT manually, use 'lerobot-find-port' to find them in a separate console.")
+        # Fallback to manual input
+        port = input("Enter the port manually: ").strip()
+        if port == '':
+            port = 'COM4'

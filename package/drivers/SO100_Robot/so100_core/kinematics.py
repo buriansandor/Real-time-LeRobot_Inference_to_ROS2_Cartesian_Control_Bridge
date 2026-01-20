@@ -20,16 +20,24 @@ class SO100Kinematics:
             active_links_mask=[False, True, True, True, True, True, False] 
         )
 
-    def inverse_kinematics(self, target_pos, target_orient=[0, 0, -1], orientation_mode="Z", seed_state=None):
+    def inverse_kinematics(self, target_pos, target_orient=[0, 0, -1], orientation_mode=None, seed_state=None):
         """
         Calculates the angles (in Radians)
         """
-        return self.chain.inverse_kinematics(
-            target_position=target_pos,
-            target_orientation=target_orient,
-            orientation_mode=orientation_mode,
-            initial_position=seed_state  # Important for continuous movement!
-        )
+        if orientation_mode is None:
+            # Ha nincs orientáció megadva, csak pozíciót számolunk
+            return self.chain.inverse_kinematics(
+                target_position=target_pos,
+                initial_position=seed_state
+            )
+        else:
+            # Ha van orientáció megadva
+            return self.chain.inverse_kinematics(
+                target_position=target_pos,
+                target_orientation=target_orient,
+                orientation_mode=orientation_mode,
+                initial_position=seed_state
+            )
 
     def forward_kinematics(self, joint_angles):
         """

@@ -6,8 +6,14 @@ Created by Sándor Burian with the help of Google Gemini Pro.
 import sys
 import os
 import time
+from pathlib import Path
 
-from so100_core import SO100Robot
+# Add the package root to Python path
+script_dir = Path(__file__).parent
+package_root = script_dir.parent.parent.parent
+sys.path.insert(0, str(package_root))
+
+from drivers.SO100_Robot import SO100Robot
 
 def main():
     print("--- SO-100 DEMO ---")

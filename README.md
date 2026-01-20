@@ -5,12 +5,14 @@ Created by Sandor Burian with the help of GitHub Copilot (Claude Sonnet 4)
 
 [![Pylint](https://github.com/buriansandor/Real-time-LeRobot_Inference_to_ROS2_Cartesian_Control_Bridge/actions/workflows/pylint.yml/badge.svg)](https://github.com/buriansandor/Real-time-LeRobot_Inference_to_ROS2_Cartesian_Control_Bridge/actions/workflows/pylint.yml)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 [![Code style: pylint](https://img.shields.io/badge/code%20style-pylint-blue)](https://pylint.pycqa.org/)
+[![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 ![package - ROS2](https://img.shields.io/badge/package-ROS2-inactive?logo=ros)
 ![package - PyPi](https://img.shields.io/badge/package-PyPi-inactive?logo=pypi)
 ![package - huggingface](https://img.shields.io/badge/package-huggingface-inactive?logo=huggingface)
 ![doi - xxxx.xxx.xxx](https://img.shields.io/badge/doi-xxxx.xxx.xxx-inactive?logo=arxiv)
+![doi - xxxx.xxx.xxx](https://img.shields.io/badge/doi-xxxx.xxx.xxx-inactive?logo=researchgate)
+![doi - xxxx.xxx.xxx](https://img.shields.io/badge/doi-xxxx.xxx.xxx-inactive?logo=googlescholar)
 
 <!--
 [![Model on HF](https://huggingface.co/datasets/huggingface/badges/resolve/main/model-on-hf-sm-dark.svg)]()

@@ -2,10 +2,13 @@ LICENSE
 README.md
 setup.py
 package/drivers/__init__.py
+package/drivers/SO100_Robot/__init__.py
 package/drivers/SO100_Robot/so100_core/__init__.py
 package/drivers/SO100_Robot/so100_core/kinematics.py
 package/drivers/SO100_Robot/so100_core/robot.py
+package/drivers/SO100_Robot/so100_core/robot_gemini.py
 package/drivers/SO100_Robot/so100_core/sts3215.py
+package/drivers/SO100_Robot/so100_core/sts3215_gemini.py
 package/universal_robot_control.egg-info/PKG-INFO
 package/universal_robot_control.egg-info/SOURCES.txt
 package/universal_robot_control.egg-info/dependency_links.txt
@@ -13,3 +16,4 @@ package/universal_robot_control.egg-info/requires.txt
 package/universal_robot_control.egg-info/top_level.txt
 package/utils/__init__.py
 package/utils/file_utils.py
+package/utils/input_utils.py

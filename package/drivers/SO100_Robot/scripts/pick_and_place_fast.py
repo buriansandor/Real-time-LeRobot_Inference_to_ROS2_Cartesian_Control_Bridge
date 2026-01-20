@@ -9,9 +9,15 @@ This script demonstrates a simple pick and place operation using the SO100 robot
 import sys
 import os
 import time
+from pathlib import Path
 
-from so100_core import SO100Robot
-from utils import get_robot_configuration
+# Add the package root to Python path 
+script_dir = Path(__file__).parent
+package_root = script_dir.parent.parent.parent
+sys.path.insert(0, str(package_root))
+
+from drivers.SO100_Robot import SO100Robot
+from utils.input_utils import get_robot_configuration
 
 
 def simple_pick_and_place():
@@ -26,8 +32,8 @@ def simple_pick_and_place():
     print("--- PICK & PLACE DEMO ---")
     
     
-    GRIPPER_OPEN = robot.get_gripper_open_position() 
-    GRIPPER_CLOSE = robot.get_gripper_close_position()
+    #GRIPPER_OPEN = robot.get_gripper_open_position() 
+    #GRIPPER_CLOSE = robot.get_gripper_close_position()
     
     # Test coordinates
     PICK_POS = [0.25, 0.05, 0.03]  # right, forward down
@@ -51,7 +57,7 @@ def simple_pick_and_place():
                 print(f"  J{i}: {target_joints[i]:.2f}")
 
             # --- MOVEMENT ---
-            move_time = 2000 # 2 seconds (safe speed)
+            move_time = 800 # 2 seconds (safe speed)
             
             # The IKPy array also contains the "Base link" at index 0.
             # Our driver's set_target_angle(0) command corresponds to motor 1 (J1).
@@ -67,12 +73,12 @@ def simple_pick_and_place():
                 time.sleep(0.05)
 
     print("\n\n==== Pick and place Simulation ====\n\nStarting...")
-    print("Open positions:", GRIPPER_OPEN)
-    print("Close position:", GRIPPER_CLOSE)
+    #print("Open positions:", GRIPPER_OPEN)
+    #print("Close position:", GRIPPER_CLOSE)
     print("Waking up motors...")
     robot.torque_enable(True)
 
-    print("\n\nCurrent calibration values:\n", robot.getCalibrationvalues()["offsets"],"\n",robot.getCalibrationvalues()["directions"],"\n", robot.getCalibrationvalues()["adjustments"])
+    print("\n\nCurrent calibration values:\n", robot.getCalibrationvalues()["offsets"],"\n",robot.getCalibrationvalues()["directions"],"\n", robot.getCalibrationvalues()["adjustments"], "\n", robot.getCalibrationvalues()["gripper_limits"])
     a = input("Press x to exit the pick and place demo...")
     if a == "x":
         print("Exiting...")
@@ -80,7 +86,7 @@ def simple_pick_and_place():
 
     # 1. Open gripper and move to pick position
     robot.gripper_open()
-    robot.move_to_cartesian(PICK_POS[0], PICK_POS[1], SAFE_Z, time_ms=500)  # Fast move to safe height
+    robot.move_to_cartesian(PICK_POS[0], PICK_POS[1], SAFE_Z, time_ms=300)  # Fast move to safe height
     robot.move_to_cartesian(PICK_POS[0], PICK_POS[1], PICK_POS[2], time_ms=300)  # Fast descend
     
     # 2. Close gripper and lift
@@ -88,7 +94,7 @@ def simple_pick_and_place():
     robot.move_to_cartesian(PICK_POS[0], PICK_POS[1], SAFE_Z, time_ms=300)  # Fast lift
     
     # 3. Move to place position
-    robot.move_to_cartesian(PLACE_POS[0], PLACE_POS[1], PLACE_POS[2], time_ms=500)  # Fast move to place
+    robot.move_to_cartesian(PLACE_POS[0], PLACE_POS[1], PLACE_POS[2], time_ms=300)  # Fast move to place
     
     # 4. Open gripper and retreat
     robot.gripper_open()

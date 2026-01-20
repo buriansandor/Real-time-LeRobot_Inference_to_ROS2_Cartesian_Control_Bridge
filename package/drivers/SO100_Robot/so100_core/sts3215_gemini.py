@@ -23,6 +23,7 @@ class STS3215Driver:
         msg.append(chk)
         self.ser.reset_input_buffer()
         self.ser.write(bytearray(msg))
+        # time.sleep(0.002) # Kicsit gyorsíthatunk rajta, ha kivesszük
         
         response = self.ser.read(length + 6)
         if len(response) < length + 6:
@@ -41,45 +42,28 @@ class STS3215Driver:
         return None
 
     def write_position(self, motor_id, position, time_ms=0, speed=0):
+        """
+        Mozgatás adott pozícióra.
+        HA time_ms > 0: A szervó pontosan ennyi idő alatt ér oda (Sima mozgás!)
+        HA time_ms = 0: A szervó a megadott speed sebességgel megy.
+        """
         pos = int(position)
         t = int(time_ms)
         sp = int(speed)
+        
+        # Regiszter kiosztás (STS3215):
+        # 0x2A: Pozíció (2 byte)
+        # 0x2C: Time (2 byte) <-- EZT KELL HASZNÁLNUNK!
+        # 0x2E: Speed (2 byte)
+        
         params = [
-            0x2A, 0x00,
-            pos & 0xFF, (pos >> 8) & 0xFF,
-            t & 0xFF, (t >> 8) & 0xFF,
-            sp & 0xFF, (sp >> 8) & 0xFF,
+            0x2A, # Cím
+            0x00,
+            pos & 0xFF, (pos >> 8) & 0xFF,      # Target Position
+            t & 0xFF, (t >> 8) & 0xFF,          # Time (ms)
+            sp & 0xFF, (sp >> 8) & 0xFF,        # Speed
         ]
         self._write_packet(motor_id, 0x03, params)
-
-    def sync_write_pos_time(self, id_pos_time_list):
-        """
-        Egyszerre mozgat több motort (SYNC WRITE).
-        id_pos_time_list: Lista tuple-ökből -> [(motor_id, pozíció, idő_ms), ...]
-        """
-        # STS3215 Sync Write (Instruction 0x83)
-        # Start Address: 0x2A (Position Low)
-        # Data Length per motor: 4 bytes (2 byte Position + 2 byte Time)
-        
-        start_addr = 0x2A
-        data_len = 4 
-        
-        params = [start_addr, data_len]
-        
-        for mid, pos, time_val in id_pos_time_list:
-            pos = int(pos)
-            time_val = int(time_val)
-            # Motor ID
-            params.append(mid)
-            # Position Little Endian
-            params.append(pos & 0xFF)
-            params.append((pos >> 8) & 0xFF)
-            # Time Little Endian
-            params.append(time_val & 0xFF)
-            params.append((time_val >> 8) & 0xFF)
-            
-        # ID 0xFE a Broadcast ID Sync Write-nál
-        self._write_packet(0xFE, 0x83, params)
 
     def torque_enable(self, motor_id, enable=True):
         val = 1 if enable else 0
