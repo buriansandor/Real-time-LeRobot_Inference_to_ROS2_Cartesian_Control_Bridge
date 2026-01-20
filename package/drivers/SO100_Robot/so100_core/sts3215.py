@@ -1,5 +1,6 @@
 import time
 import serial
+import time
 import struct
 
 class STS3215Driver:
@@ -16,6 +17,7 @@ class STS3215Driver:
         chk = (~sum(msg[2:]) & 0xFF)
         msg.append(chk)
         self.ser.write(bytearray(msg))
+        time.sleep(0.0002)  # Original timing from working code
 
     def _read_packet(self, motor_id, length):
         msg = [0xFF, 0xFF, motor_id, length + 2, 0x02] 
@@ -77,6 +79,39 @@ class STS3215Driver:
             # Time Little Endian
             params.append(time_val & 0xFF)
             params.append((time_val >> 8) & 0xFF)
+            
+        # ID 0xFE a Broadcast ID Sync Write-nál
+        self._write_packet(0xFE, 0x83, params)
+
+    def sync_write_pos_time_speed(self, id_pos_time_speed_list):
+        """
+        Egyszerre mozgat több motort (SYNC WRITE) sebességgel.
+        id_pos_time_speed_list: Lista tuple-ökből -> [(motor_id, pozíció, idő_ms, speed), ...]
+        """
+        # STS3215 Sync Write (Instruction 0x83)
+        # Start Address: 0x2A (Position Low)
+        # Data Length per motor: 6 bytes (2 byte Position + 2 byte Time + 2 byte Speed)
+        
+        start_addr = 0x2A
+        data_len = 6 
+        
+        params = [start_addr, data_len]
+        
+        for mid, pos, time_val, speed_val in id_pos_time_speed_list:
+            pos = int(pos)
+            time_val = int(time_val)
+            speed_val = int(speed_val)
+            # Motor ID
+            params.append(mid)
+            # Position Little Endian
+            params.append(pos & 0xFF)
+            params.append((pos >> 8) & 0xFF)
+            # Time Little Endian
+            params.append(time_val & 0xFF)
+            params.append((time_val >> 8) & 0xFF)
+            # Speed Little Endian (0 = max speed)
+            params.append(speed_val & 0xFF)
+            params.append((speed_val >> 8) & 0xFF)
             
         # ID 0xFE a Broadcast ID Sync Write-nál
         self._write_packet(0xFE, 0x83, params)

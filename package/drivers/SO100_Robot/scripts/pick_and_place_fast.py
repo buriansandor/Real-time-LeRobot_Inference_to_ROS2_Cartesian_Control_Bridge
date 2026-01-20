@@ -10,6 +10,7 @@ import sys
 import os
 import time
 from pathlib import Path
+import ikpy.chain
 
 # Add the package root to Python path 
 script_dir = Path(__file__).parent
@@ -42,35 +43,33 @@ def simple_pick_and_place():
     SAFE_Z = 0.15 # safety high
     # --------------------
     
-    def move_to(driver, x, y, z):
+    def move_to_fast(robot, x, y, z, time_ms=500):  # Balanced speed - 500ms
+        """Direct set_target_angle method like original demo"""
         print(f"Move to: {x}, {y}, {z}")
-        target_pos = [x, y, z]
-        seed_state = [0] * len(driver.chain.links) 
-        target_joints = driver.chain.inverse_kinematics(target_position=target_pos, initial_position=seed_state)
+        
+        # Fix: Use robot.kinematics.chain instead of robot.chain
+        seed_state = [0] * len(robot.kinematics.chain.links) 
+        target_joints = robot.kinematics.chain.inverse_kinematics(
+            target_position=[x, y, z], 
+            initial_position=seed_state
+        )
             
         # Printing the calculated angles (in Radians)
-        # Note: target_joints[0] is usually the Base (which is fixed at 0), so motors start from 1
         print("Calculated angles (Radians):")
-        for i in range(1, len(target_joints)):
-            # Handling ikpy index offset
-            if i <= 6:
-                print(f"  J{i}: {target_joints[i]:.2f}")
+        for i in range(1, min(7, len(target_joints))):
+            print(f"  J{i}: {target_joints[i]:.2f}")
 
-            # --- MOVEMENT ---
-            move_time = 800 # 2 seconds (safe speed)
+        # DIRECT MOTOR CONTROL (like original working demo)
+        print("Moving...")
+        for motor_idx in range(5):  # 0..4 (Motor 1..5, skip gripper)
+            ik_angle = target_joints[motor_idx + 1]  # Skip base
             
-            # The IKPy array also contains the "Base link" at index 0.
-            # Our driver's set_target_angle(0) command corresponds to motor 1 (J1).
-            # So: driver Motor 0 -> IKPy Joint 1
-            
-            print("Moving...")
-            for motor_idx in range(6): # 0..5 (Motor 1..6)
-                # IKPy Joint index: motor_idx + 1
-                ik_angle = target_joints[motor_idx + 1]
-                
-                # Sending to the driver (which will add the calibration offset)
-                driver.set_target_angle(motor_idx, ik_angle, move_time_ms=move_time)
-                time.sleep(0.05)
+            # Direct call like original demo
+            robot.set_target_angle(motor_idx, ik_angle, move_time_ms=time_ms)
+            time.sleep(0.05)  # Original demo timing - more reliable
+        
+        # Wait for completion
+        time.sleep(time_ms / 1000.0 + 0.1)  # Original buffer timing
 
     print("\n\n==== Pick and place Simulation ====\n\nStarting...")
     #print("Open positions:", GRIPPER_OPEN)
@@ -86,19 +85,26 @@ def simple_pick_and_place():
 
     # 1. Open gripper and move to pick position
     robot.gripper_open()
-    robot.move_to_cartesian(PICK_POS[0], PICK_POS[1], SAFE_Z, time_ms=300)  # Fast move to safe height
-    robot.move_to_cartesian(PICK_POS[0], PICK_POS[1], PICK_POS[2], time_ms=300)  # Fast descend
+    time.sleep(0.2)  # Reduced gripper wait time
+    
+    move_to_fast(robot, PICK_POS[0], PICK_POS[1], SAFE_Z, time_ms=400)  # Fast movement
+    
+    move_to_fast(robot, PICK_POS[0], PICK_POS[1], PICK_POS[2], time_ms=400)  # Descend
     
     # 2. Close gripper and lift
     robot.gripper_close()
-    robot.move_to_cartesian(PICK_POS[0], PICK_POS[1], SAFE_Z, time_ms=300)  # Fast lift
+    time.sleep(0.2)  # Reduced gripper wait time
+    
+    move_to_fast(robot, PICK_POS[0], PICK_POS[1], SAFE_Z, time_ms=400)  # Lift
     
     # 3. Move to place position
-    robot.move_to_cartesian(PLACE_POS[0], PLACE_POS[1], PLACE_POS[2], time_ms=300)  # Fast move to place
+    move_to_fast(robot, PLACE_POS[0], PLACE_POS[1], PLACE_POS[2], time_ms=400)  # Move to place
     
     # 4. Open gripper and retreat
     robot.gripper_open()
-    robot.move_to_cartesian(PLACE_POS[0], PLACE_POS[1], SAFE_Z, time_ms=300)  # Fast retreat
+    time.sleep(0.2)  # Reduced gripper wait time
+    
+    move_to_fast(robot, PLACE_POS[0], PLACE_POS[1], SAFE_Z, time_ms=400)  # Retreat
     
     robot.gripper_close()
 
