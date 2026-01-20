@@ -13,7 +13,22 @@ import subprocess
 import venv
 import platform
 from pathlib import Path
-
+from setuptools import setup, find_packages
+setup(
+    name='universal_robot_control', 
+    version='0.1', 
+    packages=find_packages(where='package') + ['so100_core'],
+    package_dir={
+        '': 'package',
+        'so100_core': 'package/drivers/SO100_Robot/so100_core'
+    },
+    install_requires=[
+        'numpy',
+        'ikpy',
+        'matplotlib',
+        'lerobot'
+    ]
+)
 
 def get_venv_path():
     """Get the virtual environment path based on the operating system."""
@@ -42,10 +57,10 @@ def create_virtual_environment():
     
     try:
         venv.create("venv", with_pip=True)
-        print("✓ Virtual environment created successfully.")
+        print("[OK] Virtual environment created successfully.")
         return True
     except Exception as e:
-        print(f"✗ Failed to create virtual environment: {e}")
+        print(f"[ERROR] Failed to create virtual environment: {e}")
         return False
 
 
@@ -57,10 +72,10 @@ def upgrade_pip():
     try:
         subprocess.run([str(pip_path), "install", "--upgrade", "pip"], 
                       check=True, capture_output=True, text=True)
-        print("✓ pip upgraded successfully.")
+        print("[OK] pip upgraded successfully.")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"✗ Failed to upgrade pip: {e}")
+        print(f"[ERROR] Failed to upgrade pip: {e}")
         return False
 
 
@@ -78,10 +93,10 @@ def install_requirements():
     try:
         subprocess.run([str(pip_path), "install", "-r", "requirements.txt"], 
                       check=True, capture_output=True, text=True)
-        print("✓ Requirements installed successfully.")
+        print("[OK] Requirements installed successfully.")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"✗ Failed to install requirements: {e}")
+        print(f"[ERROR] Failed to install requirements: {e}")
         return False
 
 
@@ -96,10 +111,10 @@ def install_specific_packages(packages):
     try:
         subprocess.run([str(pip_path), "install"] + packages, 
                       check=True, capture_output=True, text=True)
-        print("✓ Packages installed successfully.")
+        print("[OK] Packages installed successfully.")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"✗ Failed to install packages: {e}")
+        print(f"[ERROR] Failed to install packages: {e}")
         return False
 
 
@@ -115,10 +130,10 @@ def generate_requirements():
         with open("requirements.txt", "w") as f:
             f.write(result.stdout)
         
-        print("✓ requirements.txt generated successfully.")
+        print("[OK] requirements.txt generated successfully.")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"✗ Failed to generate requirements.txt: {e}")
+        print(f"[ERROR] Failed to generate requirements.txt: {e}")
         return False
 
 
@@ -152,7 +167,7 @@ def main():
     
     # Check if Python version is supported
     if sys.version_info < (3, 7):
-        print("✗ Python 3.7 or higher is required.")
+        print("[ERROR] Python 3.7 or higher is required.")
         return 1
     
     # Create virtual environment
@@ -178,4 +193,14 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # Only run setup when executed directly (python setup.py), not during pip install
+    import os
+    if 'SETUPTOOLS_USE_DISTUTILS' in os.environ or len(sys.argv) > 1:
+        # Skip setup when being run by setuptools/pip
+        setuptools_commands = ['egg_info', 'bdist_wheel', 'build', 'install', 'dist_info', 'develop', 'sdist', 'editable_wheel']
+        if any(cmd in sys.argv for cmd in setuptools_commands):
+            pass
+        else:
+            sys.exit(main())
+    else:
+        sys.exit(main())

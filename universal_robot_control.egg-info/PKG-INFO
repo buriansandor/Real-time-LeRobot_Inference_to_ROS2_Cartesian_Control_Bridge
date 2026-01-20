@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: universal_robot_control
+Version: 0.1
+License-File: LICENSE
+Requires-Dist: numpy
+Requires-Dist: ikpy
+Requires-Dist: matplotlib
+Requires-Dist: lerobot
+Dynamic: license-file
+Dynamic: requires-dist
