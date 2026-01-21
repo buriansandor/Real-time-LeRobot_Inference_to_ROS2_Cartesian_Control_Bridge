@@ -38,7 +38,7 @@ def get_port_input(default_port='COM4'):
     Returns:
         str: Port name (e.g., 'COM4', '/dev/ttyUSB0')
     """
-    port = input("Enter the port of the follower arm (e.g., COM4 or /dev/ttyUSB0) or get the port with port detection (detect): ").strip()
+    port = input("Enter the port of the robotic arm (e.g., COM4 or /dev/ttyUSB0) or get the port with port detection (detect): ").strip()
     
     if port == '':
         print(f"Setting port to the default: {default_port}")
@@ -48,7 +48,7 @@ def get_port_input(default_port='COM4'):
         port = get_port_with_detection()
         if port is None:
             print("Port detection failed. Please set the port manually.")
-            port = input("Enter the port of the follower arm (e.g., COM4 or /dev/ttyUSB0): ").strip()
+            port = input("Enter the port of the robotic arm (e.g., COM4 or /dev/ttyUSB0): ").strip()
     return port
 
 
