@@ -2,7 +2,7 @@
 """
 Input utility functions for SO100 Robot configuration
 Handles common input prompts for port, calibration file, and URDF path
-Created by Copilot based on Sandor Burian's code with the help of Google Gemini Pro.
+Created by Sandor Burian based Copilot's code with the help of Google Gemini Pro.
 """
 
 
@@ -30,7 +30,7 @@ def get_robot_configuration():
     return config
 
 
-def get_port_input():
+def get_port_input(default_port='COM4'):
     """
     Get port configuration from user input.
     Supports default port, manual input, and automatic detection.
@@ -41,8 +41,8 @@ def get_port_input():
     port = input("Enter the port of the follower arm (e.g., COM4 or /dev/ttyUSB0) or get the port with port detection (detect): ").strip()
     
     if port == '':
-        print("Setting port to the default: COM4")
-        port = 'COM4'  # Change this to your follower's port if needed
+        print(f"Setting port to the default: {default_port}")
+        port = default_port  # Change this to your follower's port if needed
     elif port.lower() == 'detect':
         port = None
         port = get_port_with_detection()
@@ -52,39 +52,39 @@ def get_port_input():
     return port
 
 
-def get_calibration_file_input():
+def get_calibration_file_input(default_file='follower_calibration.csv'):
     """
     Get calibration file name from user input.
     
     Returns:
         str: Calibration file name
     """
-    calib_file = input("Enter the calibration file name (default: follower_calibration.csv): ").strip()
+    calib_file = input(f"Enter the calibration file name (default: {default_file}): ").strip()
     
     if calib_file == '':
-        print("Setting calibration file to default: follower_calibration.csv")
-        calib_file = 'follower_calibration.csv'
+        print(f"Setting calibration file to default: {default_file}")
+        calib_file = default_file
     
     return calib_file
 
 
-def get_urdf_path_input():
+def get_urdf_path_input(default_urdf='so100.urdf'):
     """
     Get URDF file path from user input.
     
     Returns:
         str: URDF file path
     """
-    urdf_path = input("Enter the URDF file path (default: so100.urdf): ").strip()
+    urdf_path = input(f"Enter the URDF file path (default: {default_urdf}): ").strip()
     
     if urdf_path == '':
-        print("Setting URDF path to default: so100.urdf")
-        urdf_path = "so100.urdf"
+        print(f"Setting URDF path to default: {default_urdf}")
+        urdf_path = default_urdf
     
     return urdf_path
 
 
-def get_port_with_detection():
+def get_port_with_detection(defaultPort='COM4'):
     """
     Get port using automatic detection only.
     This is a convenience function for scripts that prefer automatic detection.
@@ -102,4 +102,4 @@ def get_port_with_detection():
         # Fallback to manual input
         port = input("Enter the port manually: ").strip()
         if port == '':
-            port = 'COM4'
+            port = defaultPort
