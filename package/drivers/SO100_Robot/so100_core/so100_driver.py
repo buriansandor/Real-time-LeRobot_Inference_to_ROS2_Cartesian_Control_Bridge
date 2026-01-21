@@ -14,7 +14,7 @@ import csv
 import ikpy.chain
 
 class SO100Robot:
-    def __init__(self, port=None, config_dir=None, simulation=False):
+    def __init__(self, port=None, config_dir=None, calibration_file="follower_calibration.csv", simulation=False):
         """
         Initialize SO100 Robot with simplified configuration
         """
@@ -44,7 +44,7 @@ class SO100Robot:
             raise FileNotFoundError(f"URDF not found: {urdf_path}")
         
         # Load calibration
-        calib_path = os.path.join(config_dir, "follower_calibration.csv")
+        calib_path = os.path.join(config_dir, calibration_file)
         self._load_calibration(calib_path)
         
         # Motor communication
@@ -305,3 +305,8 @@ class SO100Robot:
         """Close serial connection"""
         if self.ser:
             self.ser.close()
+    
+    def __del__(self):
+        self.close()
+        print("SO100Robot driver closed.")
+    
