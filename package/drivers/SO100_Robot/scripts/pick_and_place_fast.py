@@ -109,7 +109,7 @@ def simple_pick_and_place():
     robot.gripper_close()
 
     print("Test done!")
-    finish = input("Press x to release the arm!")
+    finish = input("Press x to release the arm!\t")
     if finish == "x":
         print("Exiting. Releasing motors...")
         robot.torque_enable(False)
