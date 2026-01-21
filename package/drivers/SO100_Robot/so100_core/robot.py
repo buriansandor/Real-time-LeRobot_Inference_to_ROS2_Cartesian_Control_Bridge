@@ -13,7 +13,7 @@ from .sts3215 import STS3215Driver
 from .kinematics import SO100Kinematics
 
 class SO100Robot:
-    def __init__(self, port, config_dir=None):
+    def __init__(self, port, calibration_file="follower_calibration.csv", gripper_configuration_values="gripper_values.csv", config_dir=None):
         # Initialize DIRECT serial connection like original
         self.ser = None
         if port:
@@ -57,10 +57,10 @@ class SO100Robot:
         self.directions = {i: 1 for i in range(6)}
         self.adjustments = {i: 0.0 for i in range(6)}
         
-        self._load_calibration(os.path.join(config_dir, "follower_calibration.csv"))
+        self._load_calibration(os.path.join(config_dir, calibration_file))
         
         self.gripper_limits = {'open': 2000, 'close': 1500}
-        self._load_gripper_config(os.path.join(config_dir, "gripper_values.csv"))
+        self._load_gripper_config(os.path.join(config_dir, gripper_configuration_values))
         
         self.current_joint_state = [0.0] * 6 
 

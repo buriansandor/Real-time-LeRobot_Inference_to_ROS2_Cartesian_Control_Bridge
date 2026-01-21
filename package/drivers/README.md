@@ -234,6 +234,15 @@ except Exception as e:
     print(f"Connection failed: {e}")
 ```
 
+**Common Connection Problems:**
+- **PermissionError (Device not functioning)**: Usually caused by Bluetooth interference
+  - **Solution**: Disable Bluetooth on your laptop/PC before connecting robot
+  - **Reason**: Bluetooth virtual COM ports can conflict with real serial ports
+- **Port busy**: Another application is using the serial port
+  - **Solution**: Close all robot programs and VS Code terminals
+- **Wrong port**: Selected port doesn't match robot
+  - **Solution**: Run `lerobot-find-port` to detect correct port
+
 ### Calibration Problems
 ```python
 # Verify calibration loading
