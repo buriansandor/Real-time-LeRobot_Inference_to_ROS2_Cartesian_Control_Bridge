@@ -94,7 +94,7 @@ def get_port_with_detection(defaultPort='COM4'):
     """
     try:
         from lerobot_functions import PortFinder
-        print("Set the port of leader arm")
+        print("Set the port of robotic arm")
         port = PortFinder.find_port_with_lerobot()
     except ImportError:
         print("Warning: PortFinder not available, using manual port configuration.")
