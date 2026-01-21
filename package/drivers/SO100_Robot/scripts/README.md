@@ -14,6 +14,37 @@ This directory contains demonstration scripts and examples for controlling the S
 - 📐 **Cartesian coordinates** - Simple XYZ positioning with inverse kinematics
 - 🔧 **Auto-calibration** - Loads motor offsets, directions, and adjustments
 
+### `calibrate_leader_candle.py`
+**Leader robot candle position calibration** - Essential first step for teleoperation setups.
+
+**Purpose:**
+- 🕯️ **Candle calibration** - Sets leader robot to perfect vertical "candle" position
+- 📊 **Zero point definition** - Defines mathematical [0,0,0,0,0] motor positions  
+- 🎯 **Leader preparation** - Prepares leader robot for teleoperation mode
+- 💾 **Auto-save** - Saves calibration to `SO100leader_to_cartesian_calibration.csv`
+
+**⚠️ IMPORTANT for Teleoperation:**
+This script **must be run first** before using any leader-follower teleoperation setup. It defines the reference position for the leader robot.
+
+**Usage:**
+```bash
+python calibrate_leader_candle.py
+```
+
+**Steps:**
+1. Connect leader robot to detected port
+2. Robot motors will be released (torque disabled)
+3. Manually position robot in perfect "candle" pose:
+   - All joints straight and vertical
+   - Gripper pointing upward
+   - This becomes the mathematical zero point
+4. Press ENTER to record calibration values
+5. Values automatically saved for teleoperation use
+
+**Troubleshooting:**
+- **Connection fails**: Disable Bluetooth on laptop to avoid port conflicts
+- **Wrong values (2048)**: Robot is in simulation mode, check connection
+
 ## Requirements
 
 - **Hardware:** SO100 Robotic Arm with STS3215 motors

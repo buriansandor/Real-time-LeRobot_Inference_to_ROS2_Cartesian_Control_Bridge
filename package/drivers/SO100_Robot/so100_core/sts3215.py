@@ -12,7 +12,34 @@ import math
 
 class STS3215Driver:
     def __init__(self, port, baudrate=1000000, timeout=0.05):
-        self.ser = serial.Serial(port, baudrate, timeout=timeout)
+        self.simulation = False
+        
+        # Try multiple baudrates if first fails
+        baudrates_to_try = [1000000, 115200, 9600, 57600]
+        
+        for baud in baudrates_to_try:
+            try:
+                self.ser = serial.Serial(port, baud, timeout=timeout)
+                print(f"[STS3215] Connected to {port} at {baud} baud")
+                
+                # Test connection by trying to read from motor 1
+                time.sleep(0.1)  # Give port time to stabilize
+                test_read = self.read_position(1)
+                if test_read is not None:
+                    print(f"[STS3215] ✅ Connection test successful at {baud} baud (Motor 1: {test_read})")
+                    return  # Success!
+                else:
+                    print(f"[STS3215] No response at {baud} baud")
+                    self.ser.close()
+            except Exception as e:
+                print(f"[STS3215] Failed at {baud} baud: {e}")
+                if hasattr(self, 'ser') and self.ser.is_open:
+                    self.ser.close()
+        
+        # If we get here, all baudrates failed
+        print(f"[STS3215] ❌ All baudrates failed for {port}")
+        self.simulation = True
+        self.ser = None
 
     def close(self):
         if self.ser.is_open:
@@ -39,6 +66,9 @@ class STS3215Driver:
         return response
 
     def read_position(self, motor_id):
+        if self.simulation or not self.ser:
+            return 2048  # Default middle position for simulation
+        
         resp = self._read_packet(motor_id, 2)
         if resp:
             try:

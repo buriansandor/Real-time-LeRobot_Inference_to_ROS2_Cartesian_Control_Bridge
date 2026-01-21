@@ -301,6 +301,19 @@ class SO100Robot:
             "gripper_limits": self.gripper_limits
         }
 
+    def get_cartesian_position(self):
+        """
+        Get current cartesian position using forward kinematics
+        Returns [x, y, z] coordinates in meters
+        """
+        current_joints = self.get_joint_angles()
+        if current_joints:
+            # Use first 5 joints for position (exclude gripper)
+            arm_joints = [0] + current_joints[:5] + [0]  # Pad for IKpy
+            frame = self.chain.forward_kinematics(arm_joints)
+            return frame[:3, 3]  # Extract XYZ coordinates
+        return [0.0, 0.0, 0.0]
+
     def close(self):
         """Close serial connection"""
         if self.ser:

@@ -2,7 +2,6 @@
 SO100 Robot Core Module
 Handles robot initialization, kinematics, and motor control.
 Created by Copilot based on Sandor Burian's summarization of so100_robot.py.
-Extended and translated with Copilot.
 """
 import time
 import math
@@ -238,16 +237,15 @@ class SO100Robot:
     def move_to_cartesian(self, x, y, z,time_ms=200, ignore_orientation=True):  # Faster default
         seed = [0] + self.current_joint_state[:5] + [0] 
         
-        # COORDINATE SYSTEM FIX: If "left is forward", negate Y axis
-        # Try: y = -y to fix orientation issue
-        corrected_y = -y  # Experimental fix for coordinate system
+        # Direct coordinates without inversion - test if this fixes coordination
+        # Previously: corrected_y = -y (this might be causing the mismatch)
         
         # IKPy call (now with the fixed kinematics.py)
         orient_mode = None if ignore_orientation else "Z"
         target_orient = None if ignore_orientation else [0, 0, -1]
 
         target_joints = self.kinematics.inverse_kinematics(
-            target_pos=[x, corrected_y, z],
+            target_pos=[x, y, z],
             target_orient=target_orient,
             orientation_mode=orient_mode,
             seed_state=seed
@@ -326,6 +324,58 @@ class SO100Robot:
             "adjustments": self.adjustments,
             "gripper_limits": self.gripper_limits
         }
+
+    def get_cartesian_position(self):
+        """
+        Get current cartesian position using forward kinematics
+        Returns [x, y, z] coordinates in meters
+        """
+        current_joints = self.get_joint_angles()
+        if current_joints:
+            # Use first 5 joints for position (exclude gripper)
+            arm_joints = current_joints[:5]
+            xyz = self.kinematics.forward_kinematics(arm_joints)
+            return xyz
+        return [0.0, 0.0, 0.0]
+    
+    def get_cartesian_pose(self):
+        """
+        Get current cartesian position and gripper state
+        Returns xyz coordinates and gripper normalized value (0.0-1.0)
+        """
+        xyz = self.get_cartesian_position()
+        
+        # Read gripper position and normalize
+        raw_gripper = self._read_raw_position(6)
+        if raw_gripper is None: 
+            raw_gripper = self.gripper_limits['close']
+        
+        # Normalize between 0 and 1
+        grip_norm = (raw_gripper - self.gripper_limits['close']) / (self.gripper_limits['open'] - self.gripper_limits['close'])
+        grip_norm = max(0.0, min(1.0, grip_norm))  # Clamp to [0,1]
+        
+        return xyz, grip_norm
+    
+    def get_current_angles(self):
+        """
+        Alias for get_joint_angles for compatibility
+        """
+        return self.get_joint_angles()
+    
+    @property
+    def calibration_offsets(self):
+        """Return offsets as list for compatibility"""
+        return [self.offsets[i] for i in range(6)]
+    
+    @property
+    def calibration_directions(self):
+        """Return directions as list for compatibility"""
+        return [self.directions[i] for i in range(6)]
+    
+    @property
+    def calibration_adjustments(self):
+        """Return adjustments as list for compatibility"""
+        return [self.adjustments[i] for i in range(6)]
 
     def close(self):
         """Close serial connection"""
