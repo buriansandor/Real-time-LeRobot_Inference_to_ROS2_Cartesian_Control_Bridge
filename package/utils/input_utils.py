@@ -93,6 +93,13 @@ def get_port_with_detection(defaultPort='COM4'):
         str: Detected port name or None if detection fails
     """
     try:
+        import sys
+        import os
+        # Add the project root directory to Python path
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        if project_root not in sys.path:
+            sys.path.insert(0, project_root)
+        
         from lerobot_functions import PortFinder
         print("Set the port of robotic arm")
         port = PortFinder.find_port_with_lerobot()
