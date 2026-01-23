@@ -1,7 +1,10 @@
-# Real-time LeRobot Inference to ROS2 Cartesian Control Bridge
+
+<center><h1>Real-time LeRobot Inference to ROS2 Cartesian Control Bridge</h1></center>
 <!--
 Created by Sandor Burian with the help of GitHub Copilot (Claude Sonnet 4)
 -->
+
+<center><img src="documentation/LerobotRosTeleop.png"></img></center>
 
 [![Pylint](https://github.com/buriansandor/Real-time-LeRobot_Inference_to_ROS2_Cartesian_Control_Bridge/actions/workflows/pylint.yml/badge.svg)](https://github.com/buriansandor/Real-time-LeRobot_Inference_to_ROS2_Cartesian_Control_Bridge/actions/workflows/pylint.yml)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)

@@ -15,10 +15,11 @@ class SO100Robot:
     def __init__(self, port, calibration_file="follower_calibration.csv", gripper_configuration_values="gripper_values.csv", config_dir=None):
         # Initialize DIRECT serial connection like original
         self.ser = None
+        self.port = port  # Store port for reconnection
         if port:
             try:
                 import serial
-                self.ser = serial.Serial(port, 1000000, timeout=0.1)
+                self.ser = serial.Serial(port, 115200, timeout=3.0)  # Slower baud rate for reliability
                 print(f"[SO100] Connected to: {port}")
             except Exception as e:
                 print(f"[SO100] Connection failed: {e}")
@@ -79,10 +80,46 @@ class SO100Robot:
         packet.append(checksum)
         
         try:
+            if self.ser and hasattr(self.ser, 'reset_input_buffer'):
+                self.ser.reset_input_buffer()
             self.ser.write(bytearray(packet))
-            time.sleep(0.0002)  # Original working timing
+            time.sleep(0.001)  # Increased timing for reliability
         except Exception as e:
             print(f"[SO100] Write error: {e}")
+    
+    def hard_reset_connection(self):
+        """Aggressive connection reset - simulates power cycle"""
+        if getattr(self, 'simulation', False):
+            return True
+            
+        print("[SO100] Performing hard reset...")
+        try:
+            if self.ser:
+                self.ser.close()
+                time.sleep(1.0)  # Wait for hardware to reset
+            
+            import serial
+            port = getattr(self, 'port', None)
+            if port:
+                self.ser = serial.Serial(port, 115200, timeout=3.0)  # Use slower baud rate for reliability
+                time.sleep(0.5)  # Let connection stabilize
+                
+                # Send reset commands to all motors
+                for motor_id in range(1, 7):
+                    try:
+                        self._write_packet(motor_id, 0x03, [0x28, 0x00])  # Torque disable
+                        time.sleep(0.05)
+                        self._write_packet(motor_id, 0x03, [0x28, 0x01])  # Torque enable
+                        time.sleep(0.05)
+                    except:
+                        pass
+                
+                print("[SO100] Hard reset completed successfully")
+                return True
+        except Exception as e:
+            print(f"[SO100] Hard reset failed: {e}")
+            return False
+        return False
 
     def _load_calibration(self, filepath):
         print(f"Loading calibration from: {filepath}")

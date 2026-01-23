@@ -1,0 +1,57 @@
+# SO100 Teleoperation ROS2 Configuration
+
+# Robot Parameters
+robot:
+  joint_names:
+    - "joint_1"
+    - "joint_2" 
+    - "joint_3"
+    - "joint_4"
+    - "joint_5"
+    - "gripper_joint"
+  
+  # Workspace limits (in meters)
+  workspace_limits:
+    x_min: -0.35
+    x_max: 0.35
+    y_min: -0.35
+    y_max: 0.35
+    z_min: 0.02   # Table protection
+    z_max: 0.60
+
+# Control Parameters
+control:
+  # Teleoperation rates
+  leader_publish_rate: 30.0   # Hz
+  follower_feedback_rate: 50.0  # Hz
+  coordinator_monitor_rate: 10.0  # Hz
+  
+  # Movement parameters
+  movement_timeout_ms: 50
+  cartesian_step_size: 0.001  # 1mm steps
+  
+# Safety Parameters
+safety:
+  max_position_error: 0.05      # 5cm maximum position error
+  max_joint_error: 0.5          # ~30 degrees maximum joint error
+  emergency_stop_error: 0.15    # 15cm emergency stop threshold
+  
+  # Velocity limits
+  max_cartesian_velocity: 0.5   # m/s
+  max_joint_velocity: 2.0       # rad/s
+
+# Communication
+communication:
+  # Serial port settings
+  baud_rate: 1000000
+  timeout: 0.1
+  
+  # Default ports (can be overridden in launch)
+  default_leader_port: "COM5"
+  default_follower_port: "COM4"
+
+# Logging
+logging:
+  log_performance: true
+  log_errors: true
+  performance_log_interval: 1.0  # seconds

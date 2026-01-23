@@ -1,0 +1,17 @@
+# Minimal ROS Requirements (venv compatible)
+
+# Core dependencies
+pyzmq>=24.0.0
+numpy>=1.21.0
+
+# Optional for better performance
+psutil>=5.9.0
+ujson>=5.0.0
+
+# LeRobot integration (optional)
+# Uncomment to use LeRobot API for robot control:
+# lerobot
+# huggingface_hub
+
+# Development tools
+pytest>=7.0.0
