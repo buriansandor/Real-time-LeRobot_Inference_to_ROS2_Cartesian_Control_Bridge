@@ -44,19 +44,25 @@ for p in paths_to_add:
         sys.path.insert(0, str(p))
 
 # --- IMPORTS ---
+# Try importing the required classes and functions for the leader robot and input utilities.
 try:
     try:
+        # Try to import the SO100LeaderToCartesianControl class as SO100Leader.
         from leader_robot import SO100LeaderToCartesianControl as SO100Leader
     except ImportError:
+        # Fallback: import SO100Leader if the above fails.
         from leader_robot import SO100Leader
+    # Import the function to get the serial port input.
     from input_utils import get_port_input
 except ImportError as e:
+    # Print an error and exit if imports fail.
     print(f"[ERROR] IMPORT ERROR: {e}")
     sys.exit(1)
 
 def run_leader_node():
     print("\n--- ZMQ LEADER NODE (PUBLISHER) ---")
     
+    # Set up ZMQ publisher socket.
     context = zmq.Context()
     socket = context.socket(zmq.PUB)
     try:
@@ -67,9 +73,11 @@ def run_leader_node():
         return
 
     print("--- LEADER SETUP ---")
+    # Get the serial port for the leader robot (default: COM5).
     port = get_port_input("COM5")
     
     try:
+        # Set up the leader robot with configuration directory.
         config_dir = drivers_root / "config"
         leader = SO100Leader(port=port, config_dir=str(config_dir))
         leader.torque_disable()
@@ -81,24 +89,29 @@ def run_leader_node():
     
     try:
         while True:
+            # Read joint angles and gripper pose from the leader robot.
             joints = leader.get_joint_angles()
             _, gripper = leader.get_cartesian_pose()
             
+            # Prepare the message to send.
             msg = {
                 "joints": joints[:5],
                 "gripper": gripper,
                 "timestamp": time.time()
             }
             
+            # Publish the message via ZMQ.
             socket.send_json(msg)
             time.sleep(0.033)
             
+            # Print the current joint and gripper values in-place.
             sys.stdout.write(f"\rSending: {msg['joints'][0]:.2f}, Grip: {msg['gripper']:.2f}   ")
             sys.stdout.flush()
 
     except KeyboardInterrupt:
         print("\n[INFO] Broadcast ended.")
     finally:
+        # Clean up resources.
         try: leader.close()
         except: pass
         socket.close()
