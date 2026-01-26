@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
 LEADER NODE (Publisher) + LOGGING
----------------------------------
+
+Created by Google Gemini Pro based on previous versions.
+
 Reads from the Leader robot -> Publishes via ZMQ.
 Logs everything to 'leader_log.txt'.
 """
@@ -49,19 +51,19 @@ try:
         from leader_robot import SO100Leader
     from input_utils import get_port_input
 except ImportError as e:
-    print(f"❌ IMPORT ERROR: {e}")
+    print(f"[ERROR] IMPORT ERROR: {e}")
     sys.exit(1)
 
 def run_leader_node():
-    print("\n📡 --- ZMQ LEADER NODE (PUBLISHER) ---")
+    print("\n--- ZMQ LEADER NODE (PUBLISHER) ---")
     
     context = zmq.Context()
     socket = context.socket(zmq.PUB)
     try:
         socket.bind("tcp://*:5555")
-        print("📡 Topic published: tcp://localhost:5555")
+        print("Topic published: tcp://localhost:5555")
     except zmq.ZMQError as e:
-        print(f"❌ Error opening port: {e}")
+        print(f"[ERROR] Error opening port: {e}")
         return
 
     print("--- LEADER SETUP ---")
@@ -72,10 +74,10 @@ def run_leader_node():
         leader = SO100Leader(port=port, config_dir=str(config_dir))
         leader.torque_disable()
     except Exception as e:
-        print(f"❌ Error starting Leader: {e}")
+        print(f"[ERROR] Error starting Leader: {e}")
         return
 
-    print("🚀 BROADCAST STARTED! (Ctrl+C to stop)")
+    print("[INFO] BROADCAST STARTED! (Ctrl+C to stop)")
     
     try:
         while True:
@@ -95,7 +97,7 @@ def run_leader_node():
             sys.stdout.flush()
 
     except KeyboardInterrupt:
-        print("\n🛑 Broadcast ended.")
+        print("\n[INFO] Broadcast ended.")
     finally:
         try: leader.close()
         except: pass

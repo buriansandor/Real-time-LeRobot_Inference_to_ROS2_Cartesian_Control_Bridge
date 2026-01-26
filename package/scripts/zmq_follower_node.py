@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
 FOLLOWER NODE (Subscriber) - SWAP OFF (DIRECT MAPPING)
-------------------------------------------------------
-Fixes:
-- SWAP_XY = False (Restored to direct mapping)
-- MIRROR functions disabled (default state)
+
+Created by Google Gemini Pro based on previous versions.
+
+Reads from the Leader robot via ZMQ -> Directly controls the Follower robot.
+Logs everything to 'follower_log.txt'.
 """
 import sys
 import time
@@ -14,7 +15,7 @@ import os
 import traceback
 from pathlib import Path
 
-# --- 📝 LOGGER SETUP ---
+# --- LOGGER SETUP ---
 class DualLogger(object):
     def __init__(self, filename="follower_log.txt"):
         self.terminal = sys.stdout
@@ -30,7 +31,7 @@ class DualLogger(object):
 sys.stdout = DualLogger()
 sys.stderr = sys.stdout
 
-# --- 🔧 CONFIGURATION: BACK TO BASICS ---
+# --- CONFIGURATION: BACK TO BASICS ---
 
 # 1. AXIS SWAP DISABLED
 # Since moving forward went sideways, we remove this now.
@@ -63,14 +64,14 @@ try:
     from kinematics import SO100Kinematics
     from input_utils import get_port_input
 except ImportError as e:
-    print(f"❌ IMPORT ERROR: {e}")
+    print(f"[ERROR] IMPORT ERROR: {e}")
     sys.exit(1)
 
 # ================= POLICY =================
 class RobustPolicy(nn.Module):
     def __init__(self, urdf_path):
         super().__init__()
-        print(f"⚙️ Loading kinematics: {urdf_path}")
+        print(f"[INFO] Loading kinematics: {urdf_path}")
         self.kinematics = SO100Kinematics(urdf_path)
         self.chain_length = len(self.kinematics.chain.links)
         
@@ -118,7 +119,7 @@ class RobustPolicy(nn.Module):
 
 # ================= MAIN =================
 def run_follower_node():
-    print("\n🧠 --- ZMQ FOLLOWER NODE (DIRECT MAPPING) ---")
+    print("\n--- ZMQ FOLLOWER NODE (DIRECT MAPPING) ---")
     print(f"CONFIG: SWAP_XY={SWAP_XY}, MIRROR=[X:{MIRROR_X} Y:{MIRROR_Y} Z:{MIRROR_Z}]")
     
     context = zmq.Context()
@@ -138,10 +139,10 @@ def run_follower_node():
         follower.torque_enable(True)
         policy = RobustPolicy(str(urdf_path))
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"[ERROR] Error: {e}")
         return
 
-    print("🚀 STARTING! (Ctrl+C to stop)")
+    print("[INFO] STARTING! (Ctrl+C to stop)")
     last_known_joints = [0.0] * 5
 
     try:
