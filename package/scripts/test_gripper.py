@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
-Quick gripper test
+SO100 Robot Gripper Limit Value Reader
+Reads and displays the current raw position value of the SO100 robot's gripper.
+Useful for calibrating gripper open/close limits.
+Created by Sandor Burian with the help of Google Gemini Pro.
 """
 
 import sys
@@ -16,7 +19,7 @@ from package.drivers.SO100_Robot.leader_robot import SO100LeaderToCartesianContr
 def test_gripper():
     print("\n=== GRIPPER TEST ===")
     
-    leader = SO100Leader(port="COM5")
+    leader = SO100Leader(port="COM4")
     leader.torque_disable()
     
     print("Testing gripper readings...")
