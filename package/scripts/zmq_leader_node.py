@@ -2,8 +2,8 @@
 """
 LEADER NODE (Publisher) + LOGGING
 ---------------------------------
-Olvas a Leader robotból -> Publikál ZMQ-n keresztül.
-Mindent ment a 'leader_log.txt'-be.
+Reads from the Leader robot -> Publishes via ZMQ.
+Logs everything to 'leader_log.txt'.
 """
 import sys
 import time
@@ -13,7 +13,7 @@ import numpy as np
 import os
 from pathlib import Path
 
-# --- LOGGER OSZTÁLY ---
+# --- LOGGER CLASS ---
 class DualLogger(object):
     def __init__(self, filename="leader_log.txt"):
         self.terminal = sys.stdout
@@ -29,7 +29,7 @@ class DualLogger(object):
 sys.stdout = DualLogger()
 sys.stderr = sys.stdout
 
-# --- ÚTVONALAK ---
+# --- PATHS ---
 current_script_dir = Path(__file__).parent.resolve()
 package_dir = current_script_dir.parent
 drivers_root = package_dir / "drivers" / "SO100_Robot"
@@ -41,7 +41,7 @@ for p in paths_to_add:
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))
 
-# --- IMPORTOK ---
+# --- IMPORTS ---
 try:
     try:
         from leader_robot import SO100LeaderToCartesianControl as SO100Leader
@@ -49,7 +49,7 @@ try:
         from leader_robot import SO100Leader
     from input_utils import get_port_input
 except ImportError as e:
-    print(f"❌ IMPORT HIBA: {e}")
+    print(f"❌ IMPORT ERROR: {e}")
     sys.exit(1)
 
 def run_leader_node():
@@ -59,9 +59,9 @@ def run_leader_node():
     socket = context.socket(zmq.PUB)
     try:
         socket.bind("tcp://*:5555")
-        print("📡 Topic publikálása: tcp://localhost:5555")
+        print("📡 Topic published: tcp://localhost:5555")
     except zmq.ZMQError as e:
-        print(f"❌ Hiba a port nyitásakor: {e}")
+        print(f"❌ Error opening port: {e}")
         return
 
     print("--- LEADER SETUP ---")
@@ -72,10 +72,10 @@ def run_leader_node():
         leader = SO100Leader(port=port, config_dir=str(config_dir))
         leader.torque_disable()
     except Exception as e:
-        print(f"❌ Hiba a Leader indításakor: {e}")
+        print(f"❌ Error starting Leader: {e}")
         return
 
-    print("🚀 ADÁS INDUL! (Ctrl+C a leállításhoz)")
+    print("🚀 BROADCAST STARTED! (Ctrl+C to stop)")
     
     try:
         while True:
@@ -91,11 +91,11 @@ def run_leader_node():
             socket.send_json(msg)
             time.sleep(0.033)
             
-            sys.stdout.write(f"\rKüldés: {msg['joints'][0]:.2f}, Grip: {msg['gripper']:.2f}   ")
+            sys.stdout.write(f"\rSending: {msg['joints'][0]:.2f}, Grip: {msg['gripper']:.2f}   ")
             sys.stdout.flush()
 
     except KeyboardInterrupt:
-        print("\n🛑 Adás vége.")
+        print("\n🛑 Broadcast ended.")
     finally:
         try: leader.close()
         except: pass

@@ -2,9 +2,9 @@
 """
 FOLLOWER NODE (Subscriber) - SWAP OFF (DIRECT MAPPING)
 ------------------------------------------------------
-Javítás:
-- SWAP_XY = False (Visszaállítva egyenesre)
-- MIRROR funkciók kikapcsolva (alapállapot)
+Fixes:
+- SWAP_XY = False (Restored to direct mapping)
+- MIRROR functions disabled (default state)
 """
 import sys
 import time
@@ -14,7 +14,7 @@ import os
 import traceback
 from pathlib import Path
 
-# --- 📝 LOGGER BEÁLLÍTÁS ---
+# --- 📝 LOGGER SETUP ---
 class DualLogger(object):
     def __init__(self, filename="follower_log.txt"):
         self.terminal = sys.stdout
@@ -30,21 +30,21 @@ class DualLogger(object):
 sys.stdout = DualLogger()
 sys.stderr = sys.stdout
 
-# --- 🔧 KONFIGURÁCIÓ: VISSZA AZ ALAPOKHOZ ---
+# --- 🔧 CONFIGURATION: BACK TO BASICS ---
 
-# 1. TENGELYCSERE KIKAPCSOLVA
-# Mivel előre tolva oldalra ment, ezt most kivesszük.
+# 1. AXIS SWAP DISABLED
+# Since moving forward went sideways, we remove this now.
 SWAP_XY = False     
 
-# 2. TÜKRÖZÉSEK (Alapállapot)
+# 2. MIRRORING (Default state)
 MIRROR_X = False   
 MIRROR_Y = False   
 MIRROR_Z = False   
 
-# 3. ELTOLÁS (Z offset)
+# 3. OFFSET (Z offset)
 Z_OFFSET = 0.0     
 
-# --- ÚTVONALAK ---
+# --- PATHS ---
 current_script_dir = Path(__file__).parent.resolve()
 package_dir = current_script_dir.parent
 drivers_root = package_dir / "drivers" / "SO100_Robot"
@@ -63,18 +63,18 @@ try:
     from kinematics import SO100Kinematics
     from input_utils import get_port_input
 except ImportError as e:
-    print(f"❌ IMPORT HIBA: {e}")
+    print(f"❌ IMPORT ERROR: {e}")
     sys.exit(1)
 
 # ================= POLICY =================
 class RobustPolicy(nn.Module):
     def __init__(self, urdf_path):
         super().__init__()
-        print(f"⚙️ Kinematika betöltése: {urdf_path}")
+        print(f"⚙️ Loading kinematics: {urdf_path}")
         self.kinematics = SO100Kinematics(urdf_path)
         self.chain_length = len(self.kinematics.chain.links)
         
-        # Biztonsági határok
+        # Safety limits
         self.safe_z = 0.02
         self.safe_x = -0.03
 
@@ -84,10 +84,10 @@ class RobustPolicy(nn.Module):
         target_xyz = self.kinematics.forward_kinematics(arm_joints)
         x, y, z = target_xyz
         
-        # Logoljuk a nyers bemenetet
+        # Log the raw input
         print(f"[RAW] X={x:.2f} Y={y:.2f} Z={z:.2f} | ", end="")
 
-        # 2. TRANSZFORMÁCIÓK
+        # 2. TRANSFORMATIONS
         if SWAP_XY: x, y = y, x
         if MIRROR_X: x = -x
         if MIRROR_Y: y = -y
@@ -97,7 +97,7 @@ class RobustPolicy(nn.Module):
 
         # 3. SAFETY
         if z < self.safe_z: z = self.safe_z
-        # if x < self.safe_x: x = self.safe_x # Safety ideiglenesen kikapcsolva X-re
+        # if x < self.safe_x: x = self.safe_x # Safety temporarily disabled for X
         
         print(f"-> [TGT] X={x:.2f} Y={y:.2f} Z={z:.2f}")
 
@@ -138,10 +138,10 @@ def run_follower_node():
         follower.torque_enable(True)
         policy = RobustPolicy(str(urdf_path))
     except Exception as e:
-        print(f"❌ Hiba: {e}")
+        print(f"❌ Error: {e}")
         return
 
-    print("🚀 INDULÁS! (Ctrl+C leállítás)")
+    print("🚀 STARTING! (Ctrl+C to stop)")
     last_known_joints = [0.0] * 5
 
     try:
@@ -169,7 +169,7 @@ def run_follower_node():
                 continue
 
     except KeyboardInterrupt:
-        print("\nLeállítás...")
+        print("\nStopping...")
     finally:
         if follower: follower.close()
         socket.close()
