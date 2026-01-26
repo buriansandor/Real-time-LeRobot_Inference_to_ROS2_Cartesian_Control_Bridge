@@ -6,7 +6,9 @@ def parse_log(filename):
     raw_points = []
     tgt_points = []
     
-    with open(filename, 'r') as f:
+    # open with latin-1 to preserve raw byte values from serial logs
+    # (some log lines may contain non-UTF8 bytes which would raise UnicodeDecodeError)
+    with open(filename, 'r', encoding='latin-1') as f:
         for line in f:
             # [RAW] X=... | -> [TGT] X=...
             match = re.search(r'\[RAW\] X=([-\d\.]+) Y=([-\d\.]+) Z=([-\d\.]+).*\[TGT\] X=([-\d\.]+) Y=([-\d\.]+) Z=([-\d\.]+)', line)
