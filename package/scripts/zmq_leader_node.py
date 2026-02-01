@@ -66,8 +66,8 @@ def run_leader_node():
     context = zmq.Context()
     socket = context.socket(zmq.PUB)
     try:
-        socket.bind("tcp://*:5555")
-        print("Topic published: tcp://localhost:5555")
+        socket.bind("tcp://0.0.0.0:5555")
+        print("Topic published: tcp://0.0.0.0:5555")
     except zmq.ZMQError as e:
         print(f"[ERROR] Error opening port: {e}")
         return
