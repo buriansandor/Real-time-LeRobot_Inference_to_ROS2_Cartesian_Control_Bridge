@@ -51,25 +51,35 @@ A comprehensive robotics control system for connecting SO100 leader robot to Ann
 ## 📁 Project Structure
 
 ```
-HFSO100_to_AnninAR4_connector/
-├── demo/                           # Main demonstration scripts
-│   ├── launcher.py                 # Multi-mode robot launcher
-│   ├── pickandplacetest.py        # Pick and place demonstration
-│   ├── gripper_handler.py         # Gripper control abstraction
-│   ├── follower_calibration.csv   # Motor calibration parameters
-│   ├── AR4/URDF/ar4.urdf         # AR4 robot URDF model
-│   ├── SO100/                     # SO100 robot components
-│   │   ├── so100_control_driver.py # Main robot driver
-│   │   ├── URDF/so100.urdf        # SO100 robot URDF model
-│   │   └── calibration files...    # Various calibration datasets
-│   └── test_*.py                  # Test and debugging scripts
-├── kinematics/                    # Kinematic computation modules
-│   ├── kinematics_bridge.py      # Hard-coded kinematics
-│   └── urdf_based_kinematics_bridge.py # URDF-based kinematics
-├── visualisation/                # 3D visualization tools
-├── .github/workflows/             # CI/CD automation
-├── requirements.txt               # Python dependencies
-└── setup.py                      # Environment setup script
+Real-time-LeRobot_Inference_to_ROS2_Cartesian_Control_Bridge/
+├── package/                          # Packaged modules & runtime scripts
+│   ├── __init__.py
+│   └── scripts/
+│       ├── zmq_leader_node.py        # Leader communicator (ZMQ)
+│       ├── zmq_hybrid_node.py        # Hybrid leader/follower bridge
+│       └── ...                       # Other runtime helpers
+├── demo/                             # Main demonstration & tools
+│   ├── launcher.py                   # Multi-mode robot launcher (GUI/CLI)
+│   ├── pickandplacetest.py           # Pick & place demo
+│   ├── gripper_handler.py            # Gripper control abstraction
+│   ├── test_*.py                     # Test and debug scripts
+│   ├── SO100/
+│   │   ├── so100_control_driver.py   # SO100 driver
+│   │   ├── URDF/
+│   │   └── calibration/              # CSV calibration files
+│   └── AR4/
+│       └── URDF/
+├── kinematics/                       # Kinematic computation modules
+├── visualization/                    # 3D visualization tools and viewers
+├── documentation/                    # Images, guides and generated docs
+├── documentation_translations/       # Translated docs (e.g., hu-HU)
+├── tests/                            # Unit/integration test suite
+├── .github/
+│   └── workflows/                    # CI/CD pipelines (pylint, tests)
+├── requirements.txt                  # Python dependencies
+├── setup.py                          # Environment / install helper
+├── LICENSE
+└── README.md
 ```
 
 ## 🛠️ Installation
@@ -126,7 +136,21 @@ pip install -r requirements.txt
 
 ## 🎮 Usage
 
-### Main Launcher
+### Use the packaged version to control a local or a remote robotic arm
+1. Start the HF SO100 leader arm
+   - Connect the robotic arm to the copmuter
+   - Start the leader listener with:
+   ```bash
+   python package/scripts/zmq_leader_node.py  
+   ```
+2. Start the hybrid node to transmit the calculated positions of the head:
+   - With this one you can control a local and a remote robotic arm as well
+   ```bash
+    python package/scripts/zmq_hybrid_node.py  
+   ```
+
+
+### Main non-LeRobot-based Launcher
 
 Start the multi-mode robot control system:
 
