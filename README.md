@@ -6,17 +6,29 @@ Created by Sandor Burian with the help of GitHub Copilot (Claude Sonnet 4)
 
 <center><img src="documentation/LerobotRosTeleop.png"></img></center>
 
-[![Pylint](https://github.com/buriansandor/Real-time-LeRobot_Inference_to_ROS2_Cartesian_Control_Bridge/actions/workflows/pylint.yml/badge.svg)](https://github.com/buriansandor/Real-time-LeRobot_Inference_to_ROS2_Cartesian_Control_Bridge/actions/workflows/pylint.yml)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Code style: pylint](https://img.shields.io/badge/code%20style-pylint-blue)](https://pylint.pycqa.org/)
-[![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
-![package - ROS2](https://img.shields.io/badge/package-ROS2-inactive?logo=ros)
-![package - PyPi](https://img.shields.io/badge/package-PyPi-inactive?logo=pypi)
-![package - huggingface](https://img.shields.io/badge/package-huggingface-inactive?logo=huggingface)
-![doi - xxxx.xxx.xxx](https://img.shields.io/badge/doi-xxxx.xxx.xxx-inactive?logo=arxiv)
-![doi - xxxx.xxx.xxx](https://img.shields.io/badge/doi-xxxx.xxx.xxx-inactive?logo=researchgate)
-![doi - xxxx.xxx.xxx](https://img.shields.io/badge/doi-xxxx.xxx.xxx-inactive?logo=googlescholar)
+<p align="center">
+   <a href="https://github.com/buriansandor/Real-time-LeRobot_Inference_to_ROS2_Cartesian_Control_Bridge/actions/workflows/pylint.yml">
+      <img src="https://github.com/buriansandor/Real-time-LeRobot_Inference_to_ROS2_Cartesian_Control_Bridge/actions/workflows/pylint.yml/badge.svg" alt="Pylint">
+   </a>
+   <a href="https://www.python.org/downloads/">
+      <img src="https://img.shields.io/badge/python-3.9+-blue.svg" alt="Python 3.9+">
+   </a>
+   <a href="https://pylint.pycqa.org/">
+      <img src="https://img.shields.io/badge/code%20style-pylint-blue" alt="Code style: pylint">
+   </a>
+   <a href="https://opensource.org/licenses/MPL-2.0">
+      <img src="https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg" alt="License: MPL 2.0">
+   </a>
 
+   <!--
+   <img src="https://img.shields.io/badge/package-PyPi-inactive?logo=pypi" alt="package - PyPi">
+   <img src="https://img.shields.io/badge/package-ROS2-inactive?logo=ros" alt="package - ROS2">
+   <img src="https://img.shields.io/badge/package-huggingface-inactive?logo=huggingface" alt="package - huggingface">
+   
+   <img src="https://img.shields.io/badge/doi-xxxx.xxx.xxx-inactive?logo=arxiv" alt="doi - xxxx.xxx.xxx">
+   <img src="https://img.shields.io/badge/doi-xxxx.xxx.xxx-inactive?logo=researchgate" alt="doi - xxxx.xxx.xxx">
+   <img src="https://img.shields.io/badge/doi-xxxx.xxx.xxx-inactive?logo=googlescholar" alt="doi - xxxx.xxx.xxx">-->
+</p>
 <!--
 [![Model on HF](https://huggingface.co/datasets/huggingface/badges/resolve/main/model-on-hf-sm-dark.svg)]()
 [![Paper page](https://huggingface.co/datasets/huggingface/badges/resolve/main/paper-page-sm-dark.svg)]()-->
@@ -29,6 +41,8 @@ Created by Sandor Burian with the help of GitHub Copilot (Claude Sonnet 4)
 A comprehensive robotics control system for connecting SO100 leader robot to Annin AR4 follower robot with advanced inverse kinematics, cartesian coordinate control, and pick-and-place capabilities.
 
 ## 🚀 Features
+
+![Connections](documentation/LeRobot-ROS2_broadcast_image.png)
 
 ### Core Functionality
 - **Multi-Mode Operation**: Hardware (hard-coded), Hardware (URDF-based), and Simulation modes
@@ -138,7 +152,7 @@ pip install -r requirements.txt
 
 ### Use the packaged version to control a local or a remote robotic arm
 1. Start the HF SO100 leader arm
-   - Connect the robotic arm to the copmuter
+   - Connect the robotic arm to the computer
    - Start the leader listener with:
    ```bash
    python package/scripts/zmq_leader_node.py  
@@ -149,6 +163,25 @@ pip install -r requirements.txt
     python package/scripts/zmq_hybrid_node.py  
    ```
 
+3. Recieve the position on the remote ROS2-based robotic arm's host:
+   ```bash
+   python package/scripts/zmq_follower_node.py
+   ```
+
+   Or with ROS2 service call:
+   ```bash
+   ros2 service call /cartesian_control geometry_msgs/PoseStamped "{position: {x: 0.05, y: 0.02, z: 0.10}}"
+   ```
+
+   If using HTTP endpoint on the follower side:
+   ```bash
+   python package/scripts/ros2_http_bridge.py --port 8000
+   ```
+
+   Or locally on the same host send the same curl command to receive the cartesian coordinates.
+   ```bash
+   curl -X POST -H "Content-Type: application/json" \-d '{"x":0.05,"y":0.02,"z":0.10,"units":"m"}' \http://127.0.0.1:8000/pose 
+   ```
 
 ### Main non-LeRobot-based Launcher
 

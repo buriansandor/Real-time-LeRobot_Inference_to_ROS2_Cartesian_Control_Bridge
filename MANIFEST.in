@@ -1,0 +1,8 @@
+include README.md
+recursive-include package/drivers *
+recursive-include package/scripts *
+recursive-include demo *
+recursive-include demo/SO100/URDF *.urdf
+recursive-include demo/SO100/calibration *.csv
+recursive-include package/drivers/SO100_Robot/config *.urdf *.csv
+include requirements.txt
