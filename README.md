@@ -62,6 +62,24 @@ A comprehensive robotics control system for connecting SO100 leader robot to Ann
 - **Comprehensive Documentation**: Full API documentation and usage examples
 - **Modular Architecture**: Clean separation of concerns for easy extension
 
+
+## 🗺️ Architecture
+
+```mermaid
+graph LR
+    subgraph "Leader PC (Windows/Linux)"
+        A[SO100 Hardware] -->|Serial| B[Leader Node]
+        B -->|ZMQ / JSON| C[Hybrid Bridge Node]
+        C -->|Forward Kinematics| D[XYZ Cartesian Target]
+    end
+
+    subgraph "Follower PC (ROS2)"
+        D -->|HTTP POST| E[ROS2 Web Server]
+        E -->|/pose topic| F[Inverse Kinematics / MoveIt]
+        F --> G[AR4 / Any ROS2 Robot]
+    end
+```
+
 ## 📁 Project Structure
 
 ```
