@@ -27,7 +27,21 @@ sys.path.insert(0, str(utils_dir))
 
 
 REMOTE_API_URL = get_follower_ip()
-Z_OFFSET = -0.05 
+
+# --- CONFIGURATION (Coordinate Transformations) ---
+# 1. AXIS SWAP
+SWAP_XY = False     # Swap X and Y axes if mechanical mounting differs
+
+# 2. MIRRORING
+MIRROR_X = False   # Mirror X axis if True
+MIRROR_Y = False   # Mirror Y axis if True
+MIRROR_Z = False   # Mirror Z axis if True
+
+# 3. OFFSET
+Z_OFFSET = -0.05   # Height adjustment (table-to-base offset)
+
+# 4. SAFETY
+SAFE_Z_MIN = 0.01  # Minimum Z height to prevent collisions
 
 REMOTE_API_URL = "http://" + REMOTE_API_URL + ":8000/pose"
 
@@ -40,6 +54,7 @@ except ImportError as e:
 def run_http_bridge():
     print(f"\n🌐 --- ZMQ -> HTTP BRIDGE ---")
     print(f"📡 Célpont: {REMOTE_API_URL}")
+    print(f"🔧 CONFIG: SWAP_XY={SWAP_XY}, MIRROR=[X:{MIRROR_X} Y:{MIRROR_Y} Z:{MIRROR_Z}], Z_OFFSET={Z_OFFSET}")
     
     context = zmq.Context()
     socket = context.socket(zmq.SUB)
@@ -82,11 +97,29 @@ def run_http_bridge():
                     continue
                 
                 leader_joints = msg['joints'][:5]
+                
+                # 1. FK (Leader) - Compute end-effector position
                 xyz = kinematics.forward_kinematics(leader_joints)
                 x, y, z = xyz
                 
+                # 2. SWAP_XY - Apply axis swap if enabled
+                if SWAP_XY:
+                    x, y = y, x
+                
+                # 3. MIRROR - Apply axis mirroring
+                if MIRROR_X:
+                    x = -x
+                if MIRROR_Y:
+                    y = -y
+                if MIRROR_Z:
+                    z = -z
+                
+                # 4. Z_OFFSET - Apply height adjustment
                 z += Z_OFFSET
-                if z < 0.01: z = 0.01
+                
+                # 5. SAFETY - Enforce minimum Z height
+                if z < SAFE_Z_MIN:
+                    z = SAFE_Z_MIN
 
                 payload = {
                     "x": round(x, 3),
