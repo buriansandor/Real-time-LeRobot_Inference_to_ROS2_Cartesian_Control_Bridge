@@ -1,0 +1,33 @@
+# Cursor AI Rules for HFSO100_to_AnninAR4_connector
+
+# PRIMARY DOCUMENTATION
+# Read llms.txt for complete system architecture and rules!
+
+# CODE STYLE
+- Follow existing project conventions (snake_case for Python)
+- Maximum line length: 100 characters
+- Use type hints where applicable
+- Document complex kinematics/transformations thoroughly
+
+# CRITICAL RULES (from llms.txt)
+1. NEVER add kinematics to Leader node (only raw joint angles)
+2. ALWAYS communicate in Cartesian space between robots
+3. MAINTAIN RobustPolicy.forward() structure for LeRobot compatibility
+4. USE non-blocking ZMQ (NOBLOCK, CONFLATE) for real-time control
+5. APPLY transforms in order: FK → SWAP → MIRROR → OFFSET → SAFETY → IK
+
+# FILE ORGANIZATION
+- Executable nodes: package/scripts/
+- Hardware drivers: package/drivers/SO100_Robot/
+- Kinematics: package/drivers/SO100_Robot/so100_core/
+- Config/URDF: package/drivers/SO100_Robot/config/
+
+# DEBUGGING
+- Use DualLogger for simultaneous stdout and file logging
+- Log Cartesian coordinates before and after transforms
+- Check ZMQ message format: {"joints": [...], "gripper": float}
+
+# TESTING
+- Test safety limits (safe_z, safe_x) before deploying
+- Verify URDF loads correctly (check paths)
+- Validate coordinate transforms with known positions

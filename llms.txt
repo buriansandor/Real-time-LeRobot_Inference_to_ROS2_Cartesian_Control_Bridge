@@ -1,0 +1,99 @@
+# SO100 to ROS2 Cartesian Teleoperation Bridge
+
+> This project is a decoupled, real-time teleoperation system that reads joint states from a 5-DOF leader robot (SO100), calculates Cartesian position via Forward Kinematics, and sends control commands to a remote follower robot (e.g., AR4) or ROS2 simulation. The architecture emphasizes hardware independence, real-time performance, and Cartesian-space communication.
+
+
+Things to remember when developing for this system:
+
+- The Leader Node is intentionally "dumb"—it only broadcasts raw joint angles and gripper state via ZMQ. All kinematics and coordinate transforms happen on the receiver side.
+- Communication occurs in Cartesian space (X, Y, Z), not joint space. This enables a 5-DOF leader to control 6-DOF followers without direct joint mapping.
+- The `RobustPolicy` class with a `forward(observation)` method encapsulates processing logic to maintain Hugging Face LeRobot compatibility.
+- Non-blocking ZMQ patterns (`zmq.NOBLOCK`, `zmq.CONFLATE`) ensure real-time teleoperation without message queuing.
+- Coordinate transforms and offsets are applied consistently before IK or HTTP transmission, following ROS REP-103 standards.
+
+## Architecture
+
+1. **Leader Node (`zmq_leader_node.py`)**: 
+   - ROLE: "Broadcasts raw joint angles and gripper state as JSON via ZMQ PUB.".
+   - ACTION: Reads SO100 joint angles (in radians) and gripper state.
+   - OUTPUT: Publishes a JSON payload `{"joints": [...], "gripper": ...}` via ZMQ PUB socket (port 5555).
+   
+2. **Bridge / Follower Nodes (`zmq_to_http.py` / `zmq_follower_node.py`)**:
+   - ROLE: "Subscribes to ZMQ, performs FK using `SO100Kinematics`, sends Cartesian targets via HTTP POST or calculates IK for local robot control".
+   - ACTION: Subscribes to ZMQ. Uses `SO100Kinematics` to perform Forward Kinematics (FK) on the leader's joints to get the exact XYZ Cartesian coordinate of the end-effector.
+   - OUTPUT: Sends the XYZ target to a ROS2 server via HTTP POST, OR calculates Inverse Kinematics (IK) to drive a local physical robot.
+
+## STRICT RULES FOR AI ASSISTANTS (DO NOT BREAK THESE):
+
+- **RULE 1: Never add Kinematics to the Leader Node.** The Leader must only send raw joint angles. All FK/IK math must happen on the receiver/bridge side.
+- **RULE 2: Cartesian Communication.** The ultimate goal of the bridge is to communicate in Cartesian Space (X, Y, Z). This allows a 5-DOF leader to control a 6-DOF follower. Do not revert to direct joint-to-joint mapping between different robots.
+- **RULE 3: LeRobot Compatibility.** The processing logic is encapsulated in a `RobustPolicy` class with a `forward(observation)` method. This is intentional to match Hugging Face's LeRobot architecture. Do not refactor this into a procedural while-loop.
+- **RULE 4: Coordinate System.** The system uses standard ROS REP-103 coordinates implicitly through the URDF. Offsets (like `Z_OFFSET`) and Mirrors are applied in the `RobustPolicy` before IK or HTTP transmission.
+- **RULE 5: Non-blocking I/O**: Enforce real-time streaming without stale message accumulation.
+
+## Configuration Parameters
+
+The `RobustPolicy` class and bridge nodes use these global configuration variables for coordinate transformations:
+
+- **SWAP_XY**: Swaps X and Y axes if mechanical mounting differs.
+- **MIRROR_X, MIRROR_Y, MIRROR_Z**: Mirrors individual axes to match follower orientation.
+- **Z_OFFSET**: Critical height adjustment (e.g., table-to-base offset). Applied AFTER mirroring.
+- **safe_z, safe_x**: Hard safety limits enforced in `RobustPolicy.forward()` to prevent collisions.
+
+These are intentionally **global constants**, not URDF parameters, because they represent workspace-specific calibration.
+
+## ZMQ Communication Details
+
+- **Port**: 5555 (default, configurable)
+- **Socket Type**: PUB/SUB pattern
+- **Flags**: 
+  - `zmq.CONFLATE`: Ensures only the latest message is kept (no queue buildup for real-time control)
+  - `zmq.NOBLOCK`: Non-blocking receive to prevent stalling
+- **Message Format**: 
+  ```json
+  {"joints": [j1, j2, j3, j4, j5], "gripper": 0.0-1.0}
+  ```
+  Joints are in **radians**. Gripper is normalized float.
+
+## Kinematics Classes
+
+- **SO100Kinematics** (`package/drivers/SO100_Robot/so100_core/kinematics.py`):
+  - `forward_kinematics(joint_angles)`: Returns `[x, y, z]` end-effector position.
+  - `inverse_kinematics(target_pos, orientation_mode, seed_state)`: Returns full joint chain solution.
+  - Uses `ikpy` library with URDF loaded from `config/` directory.
+  
+- **Seed State**: IK solver initialization. Use current follower joints as seed to ensure smooth, collision-free motion.
+
+## Safety & Control Logic
+
+1. **Gripper Mapping**: Binary threshold at 0.5 → `1.0 if leader_gripper > 0.5 else 0.0`
+2. **Safety Enforcement**: In `RobustPolicy.forward()`, Z and X limits are checked AFTER transforms:
+   ```python
+   if z < self.safe_z: z = self.safe_z
+   ```
+3. **Logging**: Leader node uses `DualLogger` class for simultaneous stdout and file logging.
+
+## Multiple Node Types
+
+- **zmq_leader_node.py**: Publishes raw leader data. No kinematics.
+- **zmq_follower_node.py**: Direct robot control (Leader FK → Follower IK → Serial commands).
+- **zmq_hybrid_node.py**: Simultaneous robot control + ROS2 publication.
+- **zmq_to_http.py**: Sends Cartesian targets to remote ROS2 HTTP server (for network-separated systems).
+
+Each node performs FK on the **receiver side**, never on leader.
+
+## File Structure Context
+
+- `package/scripts/`: Contains the executable nodes (Leader, Follower, Bridge).
+- `package/drivers/SO100_Robot/config/`: Contains URDF files and `.csv` calibration files.
+- `package/drivers/SO100_Robot/so100_core/`: Contains the low-level hardware drivers and kinematics math.
+
+## Critical Reminders
+
+- **URDF is the source of truth** for link lengths and joint limits. Never hardcode DH parameters.
+- **Transforms order**: FK → SWAP_XY → MIRROR → Z_OFFSET → Safety Limits → IK
+- **Real-time guarantee**: Use `zmq.CONFLATE` and process only the latest state. Never accumulate messages.
+- **Gripper Standard**: Gripper state sent over ZMQ must always be a normalized float (0.0 to 1.0) or binary (0.0 or 1.0). Hardware-specific raw PWM values (e.g., 1800, 2500) must only be applied at the very end, inside the specific hardware driver.
+- **Hardware Agnosticism**: The Follower side (IK and Driver) must remain strictly modular. Assume the remote Follower could be an AR4, a UR5, a KUKA, or a simulation. Never hardcode SO100-specific limits into the generic bridge logic!
+
+When proposing code changes, ensure they align with this decoupled, Cartesian-first philosophy.
