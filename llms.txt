@@ -2,6 +2,14 @@
 
 > This project is a decoupled, real-time teleoperation system that reads joint states from a 5-DOF leader robot (SO100), calculates Cartesian position via Forward Kinematics, and sends control commands to a remote follower robot (e.g., AR4) or ROS2 simulation. The architecture emphasizes hardware independence, real-time performance, and Cartesian-space communication.
 
+## Docs
+
+- [GitHub repo](https://github.com/buriansandor/Real-time-LeRobot_Inference_to_ROS2_Cartesian_Control_Bridge): The full repo of the code
+- [GitHub repo's readme](https://github.com/buriansandor/Real-time-LeRobot_Inference_to_ROS2_Cartesian_Control_Bridge/blob/main/README.md): The main readme file of the project.
+
+## Examples
+
+- [Start-up examples](https://github.com/buriansandor/Real-time-LeRobot_Inference_to_ROS2_Cartesian_Control_Bridge/tree/main?tab=readme-ov-file#-usage): examples to start and use the code.
 
 Things to remember when developing for this system:
 
