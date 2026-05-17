@@ -79,6 +79,37 @@ graph LR
         F --> G[AR4 / Any ROS2 Robot]
     end
 ```
+### Methodology
+```mermaid
+graph TD
+    subgraph "LEADER SUBSYSTEM (Data Acquisition)"
+        A[SO100 Master Hardware] -->|Serial Link| B[zmq_leader_node.py]
+        B -->|ZMQ PUB: Port 5555<br>JSON: Raw Joints| C((ZMQ Network Stream))
+    end
+
+    subgraph "HYBRID BRIDGE & POLICY (Processing Side)"
+        C -->|ZMQ SUB<br>CONFLATE = 1| D[zmq_hybrid_node.py / RobustPolicy]
+        
+        %% A transzformációs lánc vizualizációja
+        subgraph "RobustPolicy.forward()"
+            D --> E[1. Forward Kinematics]
+            E --> F[2. Axis Swap & Mirror]
+            F --> G[3. Workspace Z-Offset]
+            G --> H[4. Safety Clamping / Limits]
+        end
+    end
+
+    subgraph "FOLLOWER SUBSYSTEM (Execution)"
+        H -->|Local Serial Commands| I[Physical Follower Robot]
+        H -->|HTTP POST JSON /pose| J[Remote ROS 2 Web Server]
+        J -->|ROS 2 Topic| K[MoveIt 2 / IK Solver]
+        K --> L[ROS 2 Simulation / Industrial Robot]
+    end
+
+    style B fill:#f9f,stroke:#333,stroke-width:2px
+    style D fill:#bbf,stroke:#333,stroke-width:2px
+    style J fill:#bfb,stroke:#333,stroke-width:2px
+```
 
 ## 📁 Project Structure
 
