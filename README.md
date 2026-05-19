@@ -200,14 +200,19 @@ pip install -r requirements.txt
 ## 🎮 Usage
 
 ### Use the packaged version to control a local or a remote robotic arm
-1. Start the HF SO100 leader arm
+
+> **Physical setup:**
+>
+> With the power off (or with the servos in neutral), move both robots into the vertical candle position!
+
+1. Start the HF SO100 leader arm *(with activated environment)*
    - Connect the robotic arm to the computer
    - Start the leader listener with:
    ```bash
    python package/scripts/zmq_leader_node.py  
    ```
 2. Start the hybrid node to transmit the calculated positions of the head:
-   - With this one you can control a local and a remote robotic arm as well
+   - With this one you can control a local (then enter `127.0.0.1`) and a remote robotic arm as well
    ```bash
     python package/scripts/zmq_hybrid_node.py  
    ```
