@@ -11,9 +11,9 @@ import os
 ZMQ_PORT = 5555
 DURATION_SECONDS = 30  # How long the measurement should run (seconds)
 
-benchmark_dir = "benchmark_results"
+benchmark_dir = "benchmark_results/similarinsametime"
 file_count = len([f for f in os.listdir(benchmark_dir) if os.path.isfile(os.path.join(benchmark_dir, f))]) if os.path.exists(benchmark_dir) else 0
-OUTPUT_FILE = f"benchmark_results/benchmark_results{file_count}.csv"
+OUTPUT_FILE = f"benchmark_results/similarinsametime/benchmark_results{file_count}.csv"
 
 def run_benchmark():
     print("--- SO100 TELEOP BENCHMARK START ---")
