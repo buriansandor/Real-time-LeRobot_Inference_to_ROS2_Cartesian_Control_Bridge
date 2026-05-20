@@ -8,8 +8,8 @@ This directory contains benchmark data for the Real-time LeRobot Inference to RO
 Performance benchmarking results comparing inference latency, control accuracy, and system resource utilization across different configurations.
 
 The data were measured with:
-- [teleop_benchmark.py](//teleop_benchmark.py)
-- [kinematic_benchmark.py](//kinematic_benchmark.py)
+- [teleop_benchmark.py](../teleop_benchmark.py)
+- [kinematic_benchmark.py](../kinematic_benchmark.py)
 
 
 ## Results
@@ -23,7 +23,7 @@ The analysis script processes raw benchmark logs and generates performance metri
 ## Visualizations
 
 ![Benchmark Results](global_metrics_boxplots.png)
-![Performance Metrics](network_stability_comparision.png)
+![Performance Metrics](network_stability_comparison.png)
 ![System Load](kinematic_error_analysis.png)
 
 ## Data Files
